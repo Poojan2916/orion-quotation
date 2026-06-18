@@ -498,8 +498,12 @@ function FoamSection({ quote, patch, calc, customCalc }) {
 function AccessoriesSection({ quote, patch, calc }) {
   const setRow = (id, k, v) => patch({ accessories: quote.accessories.map(a => a.id === id ? { ...a, [k]: v } : a) });
   const delRow = (id) => patch({ accessories: quote.accessories.filter(a => a.id !== id) });
-  const firstPreset = SETTINGS.accessories[0] || { name: "Custom item", unit: "pc", basePrice: 0, weightKg: "" };
-  const addRow = () => patch({ accessories: [...quote.accessories, { id: uid("a"), name: firstPreset.name, unit: firstPreset.unit || "pc", qty: 1, basePrice: firstPreset.basePrice || 0, weightKg: firstPreset.weightKg || "", margin: "" }] });
+  // Add a new row pre-seeded to a specific group's first preset.
+  const addRowForGroup = (groupLabel) => {
+    const groupPresets = SETTINGS.accessories.filter(p => groupOf(p.name) === groupLabel);
+    const preset = groupPresets[0] || { name: "Custom item", unit: "pc", basePrice: 0, weightKg: "" };
+    patch({ accessories: [...quote.accessories, { id: uid("a"), name: preset.name, unit: preset.unit || "pc", qty: 1, basePrice: preset.basePrice || 0, weightKg: preset.weightKg || "", margin: "" }] });
+  };
   const onName = (id, name) => {
     const preset = accessoryPreset(name);
     patch({ accessories: quote.accessories.map(a => a.id === id ? { ...a, name, basePrice: preset ? preset.basePrice : a.basePrice, unit: preset ? preset.unit : a.unit, weightKg: preset ? (preset.weightKg || "") : a.weightKg } : a) });
@@ -525,31 +529,36 @@ function AccessoriesSection({ quote, patch, calc }) {
     .map(label => ({ label, rows: calc.rows.filter(r => groupOf(r.name) === label) }))
     .filter(g => g.rows.length);
 
-  const renderRow = (r) => (
-    <tr key={r.id}>
-      <td style={{ minWidth: 190 }}>
-        <select value={SETTINGS.accessories.some(p => p.name === r.name) ? r.name : "__custom"} onChange={e => { if (e.target.value === "__custom") return; onName(r.id, e.target.value); }} style={{ marginBottom: SETTINGS.accessories.some(p => p.name === r.name) ? 0 : 4 }}>
-          {SETTINGS.accessories.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
-          <option value="__custom">Custom item…</option>
-        </select>
-        {!SETTINGS.accessories.some(p => p.name === r.name) && (
-          <input type="text" value={r.name} placeholder="Item name" onChange={e => setRow(r.id, "name", e.target.value)} />
-        )}
-      </td>
-      <td>
-        <div className="segmented unit-seg">
-          <button className={r.unit === "pc" ? "active" : ""} onClick={() => setRow(r.id, "unit", "pc")}>pc</button>
-          <button className={r.unit === "ft" ? "active" : ""} onClick={() => setRow(r.id, "unit", "ft")}>ft</button>
-        </div>
-      </td>
-      <td className="num"><input className="num-input cell-input" style={{ maxWidth: 60 }} type="number" value={r.qty} onChange={e => setRow(r.id, "qty", e.target.value)} onFocus={e => e.target.select()} /></td>
-      <td className="num"><input className="num-input cell-input" style={{ maxWidth: 80 }} type="number" value={r.basePrice} onChange={e => setRow(r.id, "basePrice", e.target.value)} onFocus={e => e.target.select()} /></td>
-      <td className="num"><input className="num-input cell-input" style={{ maxWidth: 72 }} type="number" placeholder="0" value={r.margin} onChange={e => setRow(r.id, "margin", e.target.value)} onFocus={e => e.target.select()} /></td>
-      <td className="num mono" style={{ color: "var(--ink-2)" }}>₹{inr(r.finalUnit, 0)}</td>
-      <td className="num row-total">₹{inr(r.total, 0)}</td>
-      <td><button className="btn btn-danger-ghost" onClick={() => delRow(r.id)} title="Remove"><Icon name="trash" /></button></td>
-    </tr>
-  );
+  const renderRow = (r, groupLabel) => {
+    // Filter the dropdown to only show presets that belong to this group.
+    const groupPresets = SETTINGS.accessories.filter(p => groupOf(p.name) === groupLabel);
+    const inGroupPreset = groupPresets.some(p => p.name === r.name);
+    return (
+      <tr key={r.id}>
+        <td style={{ minWidth: 190 }}>
+          <select value={inGroupPreset ? r.name : "__custom"} onChange={e => { if (e.target.value === "__custom") return; onName(r.id, e.target.value); }} style={{ marginBottom: inGroupPreset ? 0 : 4 }}>
+            {groupPresets.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+            <option value="__custom">Custom item…</option>
+          </select>
+          {!inGroupPreset && (
+            <input type="text" value={r.name} placeholder="Item name" onChange={e => setRow(r.id, "name", e.target.value)} />
+          )}
+        </td>
+        <td>
+          <div className="segmented unit-seg">
+            <button className={r.unit === "pc" ? "active" : ""} onClick={() => setRow(r.id, "unit", "pc")}>pc</button>
+            <button className={r.unit === "ft" ? "active" : ""} onClick={() => setRow(r.id, "unit", "ft")}>ft</button>
+          </div>
+        </td>
+        <td className="num"><input className="num-input cell-input" style={{ maxWidth: 60 }} type="number" value={r.qty} onChange={e => setRow(r.id, "qty", e.target.value)} onFocus={e => e.target.select()} /></td>
+        <td className="num"><input className="num-input cell-input" style={{ maxWidth: 80 }} type="number" value={r.basePrice} onChange={e => setRow(r.id, "basePrice", e.target.value)} onFocus={e => e.target.select()} /></td>
+        <td className="num"><input className="num-input cell-input" style={{ maxWidth: 72 }} type="number" placeholder="0" value={r.margin} onChange={e => setRow(r.id, "margin", e.target.value)} onFocus={e => e.target.select()} /></td>
+        <td className="num mono" style={{ color: "var(--ink-2)" }}>₹{inr(r.finalUnit, 0)}</td>
+        <td className="num row-total">₹{inr(r.total, 0)}</td>
+        <td><button className="btn btn-danger-ghost" onClick={() => delRow(r.id)} title="Remove"><Icon name="trash" /></button></td>
+      </tr>
+    );
+  };
 
   return (
     <div className="card section-card">
@@ -574,15 +583,25 @@ function AccessoriesSection({ quote, patch, calc }) {
             {grouped.map(g => (
               <React.Fragment key={g.label}>
                 <tr className="acc-group-row"><td colSpan="8">{g.label}</td></tr>
-                {g.rows.map(renderRow)}
+                {g.rows.map(r => renderRow(r, g.label))}
+                <tr><td colSpan="8" style={{ padding: "4px 6px 12px" }}>
+                  <button className="btn-addrow" style={{ fontSize: 12 }} onClick={() => addRowForGroup(g.label)}><Icon name="plus" /> Add {g.label.toLowerCase()}</button>
+                </td></tr>
               </React.Fragment>
             ))}
-            {calc.rows.length === 0 && <tr><td colSpan="8" style={{ textAlign: "center", color: "var(--ink-4)", padding: 18 }}>No accessories added</td></tr>}
+            {/* Show groups that have no rows yet so users can add to them */}
+            {groupOrder.filter(label => !grouped.some(g => g.label === label)).map(label => (
+              <React.Fragment key={label}>
+                <tr className="acc-group-row"><td colSpan="8">{label}</td></tr>
+                <tr><td colSpan="8" style={{ padding: "4px 6px 12px" }}>
+                  <button className="btn-addrow" style={{ fontSize: 12 }} onClick={() => addRowForGroup(label)}><Icon name="plus" /> Add {label.toLowerCase()}</button>
+                </td></tr>
+              </React.Fragment>
+            ))}
           </tbody>
         </table>
       </div>
       <div className="row-add" style={{ display: "flex", alignItems: "center" }}>
-        <button className="btn-addrow" onClick={addRow}><Icon name="plus" /> Add accessory / hardware</button>
         <div style={{ flex: 1 }} />
         <span className="subtotal-pill" style={{ background: "var(--navy)", color: "#fff" }}>Accessories &amp; Hardware <b style={{ color: "#fff" }}>₹{inr(calc.cost, 0)}</b></span>
       </div>
