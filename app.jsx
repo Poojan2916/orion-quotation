@@ -250,7 +250,8 @@ function App({ currentUser, onLogout }) {
         </div>
         <nav className="topnav">
           <button className={view === "dashboard" ? "active" : ""} onClick={goDashboard}>Dashboard</button>
-          <button className={(view === "form" || view === "preview" || view === "internal") ? "active" : ""} onClick={() => { if (view === "dashboard") newQuote(); }}>
+          <button className={view === "priceCheck" ? "active" : ""} onClick={() => { setDraft(null); setView("priceCheck"); }}>Price Check</button>
+          <button className={(view === "form" || view === "preview" || view === "internal") ? "active" : ""} onClick={() => { if (view === "dashboard" || view === "priceCheck") newQuote(); }}>
             {view === "preview" ? "Customer Quote" : view === "internal" ? "Internal Costing" : "New Quotation"}
           </button>
           <button className={view === "settings" ? "active" : ""} onClick={openSettings}>Settings</button>
@@ -326,6 +327,10 @@ function App({ currentUser, onLogout }) {
 
         {view === "settings" && (
           <AdminSettings onClose={goDashboard} onSettingsSaved={() => setSettingsVersion(v => v + 1)} />
+        )}
+
+        {view === "priceCheck" && (
+          <PriceCheck quotes={quotes} onOpen={openQuote} />
         )}
       </main>
     </div>

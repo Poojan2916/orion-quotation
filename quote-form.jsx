@@ -41,7 +41,7 @@ function QuoteForm({ quote, onChange, onSave, onPreview, onBack }) {
         <div className="builder-main">
           <CustomerSection quote={quote} patchCustomer={patchCustomer} patchProduct={patchProduct} patch={patch} />
           <DimensionsSection quote={quote} patchDim={patchDim} />
-          <AcpSection quote={quote} patchAcp={patchAcp} patch={patch} calc={c.acp} />
+          <AcpSection quote={quote} patchAcp={patchAcp} patch={patch} calc={c.acp} customCalc={c.customPanel} />
           <FoamSection quote={quote} patch={patch} calc={c.foam} customCalc={c.customFoam} />
           <ProfilesSection quote={quote} patch={patch} calc={c.profiles} />
           <AccessoriesSection quote={quote} patch={patch} calc={c.acc} />
@@ -168,7 +168,7 @@ function PanelBreakdownTable({ rows, cut, editableQty, onQty, rawQty }) {
 }
 
 /* ---------- 3. Panel Material ---------- */
-function AcpSection({ quote, patchAcp, patch, calc }) {
+function AcpSection({ quote, patchAcp, patch, calc, customCalc }) {
   const acp = quote.acp;
   const mat = panelMaterial(acp.material);
   const setPanelQty = (key, v) => {
@@ -178,6 +178,28 @@ function AcpSection({ quote, patchAcp, patch, calc }) {
     const m = panelMaterial(name);
     patch({ acp: { ...acp, material: name, sheetW: m.sheetW, sheetL: m.sheetL, thickness: m.thickness, baseRate: m.baseRate, margin: m.margin, overlay: m.overlay, cutMargin: m.cutMargin } });
   };
+
+  // Custom panel add-ons (mirrors Custom Foam Add-ons)
+  const customRows = Array.isArray(quote.customPanelAddons) ? quote.customPanelAddons : [];
+  const setCustomRow = (id, k, v) => patch({ customPanelAddons: customRows.map(r => r.id === id ? { ...r, [k]: v } : r) });
+  const delCustomRow = (id) => patch({ customPanelAddons: customRows.filter(r => r.id !== id) });
+  const addCustomRow = () => patch({ customPanelAddons: [
+    ...customRows,
+    makeCustomPanelAddon(acp.material, {
+      name: "Additional panel piece",
+      length: quote.caseDims.length,
+      width: quote.caseDims.width,
+      thickness: acp.thickness,
+      qty: 1,
+    })
+  ] });
+  const onCustomMaterial = (id, materialName) => {
+    const m = panelMaterial(materialName);
+    patch({ customPanelAddons: customRows.map(r => r.id === id ? { ...r, material: materialName, rate: m.baseRate, thickness: r.thickness || m.thickness } : r) });
+  };
+  const customCalcRows = (customCalc && Array.isArray(customCalc.rows)) ? customCalc.rows : [];
+  const customTotal = customCalc ? customCalc.cost : 0;
+
   return (
     <div className="card section-card">
       <div className="section-head"><span className="num">3</span><h3>Panel Material</h3>
@@ -226,13 +248,67 @@ function AcpSection({ quote, patchAcp, patch, calc }) {
           <AbsLayer acp={acp} patch={patch} calc={calc.abs} />
         )}
 
-        {calc.abs && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border)", flexWrap: "wrap" }}>
-            <span className="note">Total panel cost = {acp.material} + ABS Silver layer</span>
+        {/* Custom Panel Add-ons — extra panel pieces of any size, priced per sqft */}
+        <div className="foam-layer" style={{ marginTop: 18 }}>
+          <div className="foam-layer-head">
+            <h4>Custom Panel Add-ons</h4>
+            <span className="note">extra panel pieces with different sizes · L×W×thickness · priced per sqft</span>
             <div style={{ flex: 1 }} />
-            <span className="subtotal-pill" style={{ background: "var(--red)", color: "#fff" }}>Total Panel Cost <b style={{ color: "#fff" }}>₹{inr(calc.cost, 0)}</b></span>
+            <span className="subtotal-pill" style={{ background: "var(--navy)", color: "#fff" }}>Custom Panel <b style={{ color: "#fff" }}>₹{inr(customTotal, 0)}</b></span>
           </div>
-        )}
+          <div className="table-wrap" style={{ paddingBottom: 6 }}>
+            <table className="tbl" style={{ minWidth: 1220 }}>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Material</th>
+                  <th className="num">L</th>
+                  <th className="num">W</th>
+                  <th className="num">Thickness</th>
+                  <th className="num">Qty</th>
+                  <th className="num">Rate ₹/sqft</th>
+                  <th className="num">Margin</th>
+                  <th className="num">Overlay</th>
+                  <th className="num">Total</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {customCalcRows.map(r => (
+                  <tr key={r.id}>
+                    <td style={{ minWidth: 230 }}><input value={r.name} placeholder="Additional panel" onChange={e => setCustomRow(r.id, "name", e.target.value)} /></td>
+                    <td style={{ minWidth: 160 }}>
+                      <select value={r.material} onChange={e => onCustomMaterial(r.id, e.target.value)}>
+                        {SETTINGS.panelMaterials.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                      </select>
+                    </td>
+                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 105 }} type="number" value={r.length} onChange={e => setCustomRow(r.id, "length", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 105 }} type="number" value={r.width} onChange={e => setCustomRow(r.id, "width", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 95 }} type="number" value={r.thickness} onChange={e => setCustomRow(r.id, "thickness", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 80 }} type="number" value={r.qty} onChange={e => setCustomRow(r.id, "qty", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 95 }} type="number" step="0.05" value={r.rate} onChange={e => setCustomRow(r.id, "rate", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 95 }} type="number" placeholder="0" value={r.margin} onChange={e => setCustomRow(r.id, "margin", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 95 }} type="number" placeholder="0" value={r.overlay} onChange={e => setCustomRow(r.id, "overlay", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num row-total">₹{inr(r.total, 0)}</td>
+                    <td><button className="btn btn-danger-ghost" onClick={() => delCustomRow(r.id)} title="Remove"><Icon name="trash" /></button></td>
+                  </tr>
+                ))}
+                {customCalcRows.length === 0 && <tr><td colSpan="11" style={{ textAlign: "center", color: "var(--ink-4)", padding: 14 }}>No custom panel add-ons added</td></tr>}
+              </tbody>
+            </table>
+          </div>
+          <div className="row-add" style={{ display: "flex", alignItems: "center" }}>
+            <button className="btn-addrow" onClick={addCustomRow}><Icon name="plus" /> Add custom panel size</button>
+            <div style={{ flex: 1 }} />
+            <span className="note">Cost = (L/1000 × W/1000) sqft × (rate + margin + overlay) × qty</span>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border)", flexWrap: "wrap" }}>
+          <span className="note">Total panel cost = {acp.material}{calc.abs ? " + ABS Silver layer" : ""}{customTotal > 0 ? " + custom panel add-ons" : ""}</span>
+          <div style={{ flex: 1 }} />
+          <span className="subtotal-pill" style={{ background: "var(--red)", color: "#fff" }}>Total Panel Cost <b style={{ color: "#fff" }}>₹{inr(calc.cost + customTotal, 0)}</b></span>
+        </div>
       </div>
     </div>
   );
@@ -765,7 +841,8 @@ function AddonsSection({ quote, patch, calc }) {
 function OrderSection({ quote, patch, calc }) {
   const sh = calc.shipping;
   const shipLabel = SHIPPING_TYPES.find(s => s.key === sh.type).label;
-  const finalMarginPercent = Math.max(20, Math.min(80, toNumber(quote.finalMarginPercent || 20)));
+  const finalMarginPercent = Math.max(20, Math.min(80, toNumber(quote.finalMarginPercent == null ? 20 : quote.finalMarginPercent, 20)));
+  const setMargin = v => patch({ finalMarginPercent: Math.max(20, Math.min(80, toNumber(v, 20))) });
 
   return (
     <div className="card section-card">
@@ -791,12 +868,29 @@ function OrderSection({ quote, patch, calc }) {
           <div className="order-line"><span>Base before final margin</span><b className="mono">₹{inr(calc.beforeFinalMargin)}</b></div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
-          <Field label="Final quote margin">
-            <NumInput value={finalMarginPercent} unit="%" onChange={v => patch({ finalMarginPercent: Math.max(20, Math.min(80, toNumber(v, 20))) })} />
-          </Field>
-          <div className="note" style={{ marginTop: 6 }}>Allowed range: 20% to 80%.</div>
-          <div className="order-recap" style={{ marginTop: 10 }}>
+        <div style={{ marginTop: 18 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
+            <label style={{ fontWeight: 600, color: "var(--ink)" }}>Final quote margin</label>
+            <span className="mono" style={{ fontSize: 14, color: "var(--red)", fontWeight: 700 }}>{calc.finalMarginPercent}%</span>
+          </div>
+          <input
+            type="range"
+            min="20"
+            max="80"
+            step="1"
+            value={finalMarginPercent}
+            onChange={e => setMargin(e.target.value)}
+            style={{ width: "100%", accentColor: "var(--red)", height: 22, cursor: "pointer" }}
+          />
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, color: "var(--ink-4)", fontSize: 11 }}>
+            <span>20%</span><span>30%</span><span>40%</span><span>50%</span><span>60%</span><span>70%</span><span>80%</span>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+            <NumInput value={finalMarginPercent} unit="%" onChange={setMargin} />
+            <span className="note" style={{ alignSelf: "center" }}>Type or drag — range 20% to 80%.</span>
+          </div>
+
+          <div className="order-recap" style={{ marginTop: 12 }}>
             <div className="order-line"><span>Final quote margin ({calc.finalMarginPercent}%)</span><b className="mono">₹{inr(calc.finalMarginValue)}</b></div>
             <div className="order-line tot"><span>Total before GST</span><b className="mono">₹{inr(calc.totalBeforeGst)}</b></div>
           </div>

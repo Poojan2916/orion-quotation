@@ -142,6 +142,28 @@ function calcCustomFoamAddons(quote) {
   return { rows, cost };
 }
 
+// Custom panel add-ons — arbitrary panel pieces priced per sqft.
+// piece cost = (L/1000) × (W/1000) m²-equivalent × (rate + margin + overlay) ₹/sqft × qty
+// (uses the same sqft-via-sqmm conversion as the main panel layer for consistency)
+function calcCustomPanelAddons(quote) {
+  const rows = (Array.isArray(quote.customPanelAddons) ? quote.customPanelAddons : []).map(row => {
+    const length = num(row.length);
+    const width = num(row.width);
+    const thickness = num(row.thickness);
+    const qty = num(row.qty);
+    const rate = num(row.rate);
+    const margin = num(row.margin);
+    const overlay = num(row.overlay);
+    const sqft = (length * width) / SQMM_PER_SQFT;
+    const finalRate = rate + margin + overlay;
+    const pieceCost = sqft * finalRate;
+    const total = pieceCost * qty;
+    return { ...row, length, width, thickness, qty, rate, margin, overlay, sqft, finalRate, pieceCost, total };
+  });
+  const cost = rows.reduce((s, r) => s + r.total, 0);
+  return { rows, cost };
+}
+
 // ---- Profiles: MF Profile Set + Edge Profile ----
 // MF set: totalMm = L*qL + W*qW ; ft = ceil(mm/25.4/12) ; cost = ft*(male+female+margin)
 // Edge profile: R-style options use auto L/W/H/H1 length; Double Angle options use manual ft length.
@@ -277,13 +299,14 @@ function calcQuote(quote) {
   const acp = calcAcp(quote);
   const foam = calcFoam(quote);
   const customFoam = calcCustomFoamAddons(quote);
+  const customPanel = calcCustomPanelAddons(quote);
   const profiles = calcProfiles(quote);
   const acc = calcAccessories(quote);
   const addons = calcAddons(quote); // kept for old saved data; no add-ons are shown or costed in new quotes
   const labour = calcLabour(quote);
   const shipping = calcShipping(quote);
 
-  const subtotalPerBox = acp.cost + foam.cost + customFoam.cost + profiles.cost + acc.cost + labour;
+  const subtotalPerBox = acp.cost + foam.cost + customFoam.cost + customPanel.cost + profiles.cost + acc.cost + labour;
   const quantity = Math.max(1, num(quote.quantity) || 1);
   const boxesTotal = subtotalPerBox * quantity;
   const beforeFinalMargin = boxesTotal + shipping.value;
@@ -293,18 +316,88 @@ function calcQuote(quote) {
   const gst = totalBeforeGst * gstRate();
   const grand = totalBeforeGst + gst;
 
-  // Weight (kg): per-accessory weight (qty × unit kg) plus any base weight rows from Settings.
+  // ---- Live weight: density × geometry per source, summed.
+  // Catalog density lookups by name; missing entries contribute 0 (safe degrade).
+  const panelMatByName = (typeof SETTINGS !== "undefined" && Array.isArray(SETTINGS.panelMaterials)) ? SETTINGS.panelMaterials : [];
+  const foamMatByName  = (typeof SETTINGS !== "undefined" && Array.isArray(SETTINGS.foamTypes))      ? SETTINGS.foamTypes      : [];
+  const lookupDensity = (list, name) => { const r = list.find(x => x && x.name === name); return r ? num(r.densityKgPerM3) : 0; };
+  // mm × mm × mm × kg/m³  →  kg :  divide by 1e9 (mm³ → m³)
+  const KG_PER_MM3_PER_KGM3 = 1 / 1e9;
+
+  // Panel weight = sum over rows of cutA × cutB × thickness × density × qty.
+  // Main material + (for MDF) auto-linked ABS Silver layer share the same cut dims.
+  const mainDensity = lookupDensity(panelMatByName, acp.material);
+  const mainPanelKg = (acp.rows || []).reduce((s, r) => s + (num(r.cutA) * num(r.cutB) * num(acp.thickness) * mainDensity * num(r.qty)) * KG_PER_MM3_PER_KGM3, 0);
+  let absLayerKg = 0;
+  if (acp.abs) {
+    const absDensity = lookupDensity(panelMatByName, "ABS Silver");
+    absLayerKg = (acp.abs.rows || []).reduce((s, r) => s + (num(r.cutA) * num(r.cutB) * num(acp.abs.thickness) * absDensity * num(r.qty)) * KG_PER_MM3_PER_KGM3, 0);
+  }
+  const panelsWeight = mainPanelKg + absLayerKg;
+
+  // Foam weight = sum over each foam layer × its rows × density.
+  const foamWeight = (foam.layers || []).reduce((s, l) => {
+    const d = lookupDensity(foamMatByName, l.type);
+    const layerKg = (l.rows || []).reduce((s2, r) => s2 + (num(r.cutA) * num(r.cutB) * num(l.thk) * d * num(r.qty)) * KG_PER_MM3_PER_KGM3, 0);
+    return s + layerKg;
+  }, 0);
+
+  // Custom foam pieces — use given L/W/thickness × density of the chosen foam type.
+  const customFoamWeight = (customFoam.rows || []).reduce((s, r) => {
+    const d = lookupDensity(foamMatByName, r.type);
+    return s + (num(r.length) * num(r.width) * num(r.thickness) * d * num(r.qty)) * KG_PER_MM3_PER_KGM3;
+  }, 0);
+
+  // Custom panel pieces — same idea against the panel material density.
+  const customPanelWeight = (customPanel.rows || []).reduce((s, r) => {
+    const d = lookupDensity(panelMatByName, r.material);
+    return s + (num(r.length) * num(r.width) * num(r.thickness) * d * num(r.qty)) * KG_PER_MM3_PER_KGM3;
+  }, 0);
+
+  // Profile weight = ft × kg/ft for MF and Edge profiles, plus profile extras.
+  const mfWeightPerFt   = (function () { const m = (SETTINGS && SETTINGS.mfSets || []).find(x => x.name === (profiles.mf && profiles.mf.set)); return m ? num(m.weightKgPerFt) : 0; })();
+  const edgeWeightPerFt = (function () {
+    const list = (SETTINGS && SETTINGS.edgeOptions) || [];
+    const e = list.find(x => x.name === (profiles.edge && profiles.edge.option));
+    return e ? num(e.weightKgPerFt) : 0;
+  })();
+  const mfWeight = num(profiles.mf && profiles.mf.ft) * mfWeightPerFt;
+  const edgeWeight = num(profiles.edge && profiles.edge.ft) * edgeWeightPerFt;
+  const extrasWeight = ((profiles.extras && profiles.extras.rows) || []).reduce((s, r) => {
+    const list = (SETTINGS && SETTINGS.profileExtras) || [];
+    const px = list.find(x => x.name === r.name);
+    const wpf = px ? num(px.weightKgPerFt) : 0;
+    return s + num(r.ft) * wpf;
+  }, 0);
+  const profilesWeight = mfWeight + edgeWeight + extrasWeight;
+
+  // Accessories weight (existing): per-unit weightKg × qty.
+  const accessoriesWeight = acc.weight;
+
+  // Section I "Additional fixed weights" — flat kg list summed in.
   const weightRows = (typeof SETTINGS !== "undefined" && Array.isArray(SETTINGS.weights)) ? SETTINGS.weights : [];
   const baseWeight = weightRows.reduce((s, w) => s + num(w.kg), 0);
-  const accessoriesWeight = acc.weight;
-  const weightPerBox = baseWeight + accessoriesWeight;
+
+  const weightPerBox = panelsWeight + foamWeight + customFoamWeight + customPanelWeight + profilesWeight + accessoriesWeight + baseWeight;
   const totalWeight = weightPerBox * quantity;
 
+  // Per-source breakdown (shown internally; customer sees only the single rolled-up figure).
+  const weightBreakdown = [
+    { key: "panels",       label: "Panels",                kg: panelsWeight },
+    { key: "foam",         label: "Foam",                  kg: foamWeight },
+    { key: "customFoam",   label: "Custom foam add-ons",   kg: customFoamWeight },
+    { key: "customPanel",  label: "Custom panel add-ons",  kg: customPanelWeight },
+    { key: "profiles",     label: "Profiles (MF + Edge)",  kg: profilesWeight },
+    { key: "accessories",  label: "Accessories & hardware",kg: accessoriesWeight },
+    { key: "additional",   label: "Additional fixed",      kg: baseWeight },
+  ].filter(r => r.kg > 0);
+
   return {
-    acp, foam, customFoam, profiles, acc, addons, shipping,
+    acp, foam, customFoam, customPanel, profiles, acc, addons, shipping,
     acpCost: acp.cost,
     foamCost: foam.cost,
     customFoamCost: customFoam.cost,
+    customPanelCost: customPanel.cost,
     mfCost: profiles.mfCost,
     rCost: profiles.rCost,
     edgeCost: profiles.edgeCost,
@@ -326,6 +419,12 @@ function calcQuote(quote) {
     weightRows,
     baseWeight,
     accessoriesWeight,
+    panelsWeight,
+    foamWeight,
+    customFoamWeight,
+    customPanelWeight,
+    profilesWeight,
+    weightBreakdown,
     weightPerBox,
     totalWeight,
   };

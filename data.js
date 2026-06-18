@@ -18,22 +18,24 @@ const ACP_SHEET = { w: 1220, h: 2420 }; // mm standard sheet (fallback)
 // Panel materials — all priced by the SAME sheet-cutting function.
 // Only these properties change per material. Margin is intentionally blank ("") =
 // optional, treated as 0 unless the user enters one. baseRate is an optional default.
+// densityKgPerM3 drives the live weight calc (Section 4). Sensible factory defaults below — admin can override per material in Settings.
 const PANEL_MATERIALS = [
-  { name: "ACP",        sheetW: 1220, sheetL: 2420, thicknessOptions: [3, 4, 6],      thickness: 4,  baseRate: 38, margin: "", overlay: "", cutMargin: 20 },
-  { name: "MDF",        sheetW: 1220, sheetL: 2440, thicknessOptions: [6, 9, 12, 18], thickness: 12, baseRate: 25, margin: "", overlay: "", cutMargin: 20 },
-  { name: "Plywood",    sheetW: 1220, sheetL: 2440, thicknessOptions: [6, 12, 18],    thickness: 12, baseRate: 35, margin: "", overlay: "", cutMargin: 20 },
-  { name: "ABS Silver", sheetW: 1220, sheetL: 2440, thicknessOptions: [1.5, 2, 3],    thickness: 2,  baseRate: 55, margin: "", overlay: "", cutMargin: 20 },
+  { name: "ACP",        sheetW: 1220, sheetL: 2420, thicknessOptions: [3, 4, 6],      thickness: 4,  baseRate: 38, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 1500 },
+  { name: "MDF",        sheetW: 1220, sheetL: 2440, thicknessOptions: [6, 9, 12, 18], thickness: 12, baseRate: 25, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 750 },
+  { name: "Plywood",    sheetW: 1220, sheetL: 2440, thicknessOptions: [6, 12, 18],    thickness: 12, baseRate: 35, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 600 },
+  { name: "ABS Silver", sheetW: 1220, sheetL: 2440, thicknessOptions: [1.5, 2, 3],    thickness: 2,  baseRate: 55, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 1050 },
 ];
 function panelMaterial(name) { return SETTINGS.panelMaterials.find(m => m.name === name) || SETTINGS.panelMaterials[0]; }
 
 // Foam types — sheet-cut like panels, but sheet cost is thickness-based.
 // Each carries: sheet size, default thickness, rate/mm, margin, adhesive, cut margin.
+// densityKgPerM3 drives the live weight calc (Section 4). Sensible factory defaults below — admin can override per material in Settings.
 const FOAM_TYPES = [
-  { name: "EPE foam",       sheetW: 1400, sheetL: 2000, thickness: 40, rate: 0.85, margin: "",  adhesive: 40, cutMargin: 15 },
-  { name: "XLPE foam",      sheetW: 1000, sheetL: 2000, thickness: 25, rate: 1.40, margin: "",  adhesive: 40, cutMargin: 15 },
-  { name: "PU foam",        sheetW: 1000, sheetL: 2000, thickness: 50, rate: 0.65, margin: "",  adhesive: 40, cutMargin: 15 },
-  { name: "Charcoal foam",  sheetW: 1000, sheetL: 2000, thickness: 20, rate: 1.10, margin: "",  adhesive: 40, cutMargin: 15 },
-  { name: "Egg-crate foam", sheetW: 1000, sheetL: 2000, thickness: 30, rate: 0.95, margin: "",  adhesive: 40, cutMargin: 15 },
+  { name: "EPE foam",       sheetW: 1400, sheetL: 2000, thickness: 40, rate: 0.85, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 35 },
+  { name: "XLPE foam",      sheetW: 1000, sheetL: 2000, thickness: 25, rate: 1.40, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 80 },
+  { name: "PU foam",        sheetW: 1000, sheetL: 2000, thickness: 50, rate: 0.65, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 30 },
+  { name: "Charcoal foam",  sheetW: 1000, sheetL: 2000, thickness: 20, rate: 1.10, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 40 },
+  { name: "Egg-crate foam", sheetW: 1000, sheetL: 2000, thickness: 30, rate: 0.95, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 40 },
 ];
 function foamType(name) { return SETTINGS.foamTypes.find(f => f.name === name) || SETTINGS.foamTypes[0]; }
 
@@ -90,30 +92,64 @@ function normalizeCustomFoamAddon(row) {
   };
 }
 
+// Custom panel add-ons mirror Custom Foam Add-ons exactly — extra panel pieces
+// at arbitrary sizes priced per sqft (area × rate × qty + margin/overlay added per sqft).
+function makeCustomPanelAddon(materialName, overrides) {
+  const m = (typeof panelMaterial === "function") ? panelMaterial(materialName || "ACP") : { name: materialName || "ACP", thickness: 4, baseRate: 38 };
+  const o = overrides || {};
+  return {
+    id: uid("cpa"),
+    name: o.name || "Custom panel piece",
+    material: materialName || m.name,
+    length: o.length == null ? "" : o.length,
+    width: o.width == null ? "" : o.width,
+    thickness: o.thickness == null ? m.thickness : o.thickness,
+    qty: o.qty == null ? 1 : o.qty,
+    rate: o.rate == null ? m.baseRate : o.rate,    // ₹/sqft
+    margin: o.margin == null ? "" : o.margin,       // ₹/sqft, optional
+    overlay: o.overlay == null ? "" : o.overlay,    // ₹/sqft, optional
+  };
+}
+function normalizeCustomPanelAddon(row) {
+  const m = (typeof panelMaterial === "function") ? panelMaterial((row && row.material) || "ACP") : { name: "ACP", thickness: 4, baseRate: 38 };
+  return {
+    id: (row && row.id) || uid("cpa"),
+    name: (row && row.name) || "Custom panel piece",
+    material: (row && row.material) || m.name,
+    length: row && row.length != null ? row.length : "",
+    width: row && row.width != null ? row.width : "",
+    thickness: row && row.thickness != null ? row.thickness : m.thickness,
+    qty: row && row.qty != null ? row.qty : 1,
+    rate: row && row.rate != null ? row.rate : m.baseRate,
+    margin: row && row.margin != null ? row.margin : "",
+    overlay: row && row.overlay != null ? row.overlay : "",
+  };
+}
+
 // Profiles. Three independent profile types, each priced per running foot
 // (ft rounded UP for MF & R). finalRate = baseRate + optional margin (blank = 0).
 //
 // MF Profile Set = one combined male + female set (no separate rows).
 const MF_PROFILE_SETS = [
-  { name: "Silver MF Profile Set 2mm", male: 5.25, female: 5.00 },
-  { name: "Black MF Profile Set 2mm",  male: 5.25, female: 5.00 },
-  { name: "Silver MF Profile Set 4mm", male: 10.00, female: 13.00 },
-  { name: "Black MF Profile Set 4mm",  male: 10.00, female: 13.00 },
-  { name: "MF Profile Set 9mm",        male: 28.00, female: 28.00 },
-  { name: "MF Profile Set 9mm New",    male: 28.00, female: "" },   // female editable/blank
+  { name: "Silver MF Profile Set 2mm", male: 5.25, female: 5.00,  weightKgPerFt: 0 },
+  { name: "Black MF Profile Set 2mm",  male: 5.25, female: 5.00,  weightKgPerFt: 0 },
+  { name: "Silver MF Profile Set 4mm", male: 10.00, female: 13.00, weightKgPerFt: 0 },
+  { name: "Black MF Profile Set 4mm",  male: 10.00, female: 13.00, weightKgPerFt: 0 },
+  { name: "MF Profile Set 9mm",        male: 28.00, female: 28.00, weightKgPerFt: 0 },
+  { name: "MF Profile Set 9mm New",    male: 28.00, female: "",    weightKgPerFt: 0 },   // female editable/blank
 ];
 function mfSet(name) { return SETTINGS.mfSets.find(m => m.name === name) || SETTINGS.mfSets[0]; }
 
 const R_PROFILE_OPTIONS = [
-  { name: "R Profile Silver 2mm", rate: 17 },
-  { name: "R Profile Black 2mm",  rate: 17 },
+  { name: "R Profile Silver 2mm", rate: 17, weightKgPerFt: 0 },
+  { name: "R Profile Black 2mm",  rate: 17, weightKgPerFt: 0 },
 ];
 function rOption(name) { return SETTINGS.rOptions.find(o => o.name === name) || SETTINGS.rOptions[0]; }
 
 const DOUBLE_ANGLE_OPTIONS = [
-  { name: "Double Angle Profile Silver 4mm", rate: 23 },
-  { name: "Double Angle Profile Black 4mm",  rate: 23 },
-  { name: "Double Angle Profile 9mm",        rate: 54 },
+  { name: "Double Angle Profile Silver 4mm", rate: 23, weightKgPerFt: 0 },
+  { name: "Double Angle Profile Black 4mm",  rate: 23, weightKgPerFt: 0 },
+  { name: "Double Angle Profile 9mm",        rate: 54, weightKgPerFt: 0 },
 ];
 function daOption(name) { return SETTINGS.daOptions.find(o => o.name === name) || SETTINGS.daOptions[0]; }
 
@@ -121,11 +157,11 @@ function daOption(name) { return SETTINGS.daOptions.find(o => o.name === name) |
 // mode "auto" = length is calculated from L/W/H/H1 edge quantities.
 // mode "manual" = user enters length in ft, like the earlier Double Angle Profile.
 const EDGE_PROFILE_OPTIONS = [
-  { name: "R Profile Silver 2mm", rate: 17, mode: "auto" },
-  { name: "R Profile Black 2mm",  rate: 17, mode: "auto" },
-  { name: "Double Angle Profile Silver 4mm", rate: 23, mode: "manual" },
-  { name: "Double Angle Profile Black 4mm",  rate: 23, mode: "manual" },
-  { name: "Double Angle Profile 9mm",        rate: 54, mode: "manual" },
+  { name: "R Profile Silver 2mm", rate: 17, mode: "auto",   weightKgPerFt: 0 },
+  { name: "R Profile Black 2mm",  rate: 17, mode: "auto",   weightKgPerFt: 0 },
+  { name: "Double Angle Profile Silver 4mm", rate: 23, mode: "manual", weightKgPerFt: 0 },
+  { name: "Double Angle Profile Black 4mm",  rate: 23, mode: "manual", weightKgPerFt: 0 },
+  { name: "Double Angle Profile 9mm",        rate: 54, mode: "manual", weightKgPerFt: 0 },
 ];
 function edgeOption(name) {
   const list = (SETTINGS && Array.isArray(SETTINGS.edgeOptions)) ? SETTINGS.edgeOptions : EDGE_PROFILE_OPTIONS;
@@ -161,10 +197,10 @@ const SHIPPING_TYPES = [
 // Profile extras are profile-related ft-rate items entered by required millimetres.
 // The form converts required mm → ft automatically and costs by ₹/ft.
 const PROFILE_EXTRA_PRESETS = [
-  { name: "L Patti 20mm", unit: "mm", basePrice: 29 },
-  { name: "L Patti 12mm", unit: "mm", basePrice: 9  },
-  { name: "C Channel",    unit: "mm", basePrice: 7  },
-  { name: "Tube 12x12",   unit: "mm", basePrice: 19 },
+  { name: "L Patti 20mm", unit: "mm", basePrice: 29, weightKgPerFt: 0 },
+  { name: "L Patti 12mm", unit: "mm", basePrice: 9 , weightKgPerFt: 0 },
+  { name: "C Channel",    unit: "mm", basePrice: 7 , weightKgPerFt: 0 },
+  { name: "Tube 12x12",   unit: "mm", basePrice: 19, weightKgPerFt: 0 },
 ];
 function isProfileExtraName(name) { return /^(L Patti|C Channel|Tube)/i.test(String(name || "").trim()); }
 function profileExtraPreset(name) {
@@ -312,21 +348,36 @@ let SETTINGS = factorySettings();
 function mergeSettings(input) {
   const base = factorySettings();
   const s = input && typeof input === "object" ? input : {};
-  return {
+
+  // Backfill weight-related fields onto any saved catalogs missing them, using factory defaults by name.
+  const factoryByName = (list) => { const m = {}; list.forEach(x => { if (x && x.name) m[x.name] = x; }); return m; };
+  const fillField = (rows, factoryList, field) => {
+    if (!Array.isArray(rows)) return rows;
+    const fac = factoryByName(factoryList);
+    return rows.map(r => {
+      if (!r || typeof r !== "object") return r;
+      if (r[field] != null && r[field] !== "") return r;
+      const f = fac[r.name];
+      return { ...r, [field]: (f && f[field] != null) ? f[field] : 0 };
+    });
+  };
+
+  const merged = {
     ...base,
     ...s,
     company: { ...base.company, ...(s.company || {}) },
     terms: Array.isArray(s.terms) ? s.terms : base.terms,
-    panelMaterials: Array.isArray(s.panelMaterials) ? s.panelMaterials : base.panelMaterials,
-    foamTypes: Array.isArray(s.foamTypes) ? s.foamTypes : base.foamTypes,
-    mfSets: Array.isArray(s.mfSets) ? s.mfSets : base.mfSets,
-    rOptions: Array.isArray(s.rOptions) ? s.rOptions : base.rOptions,
-    daOptions: Array.isArray(s.daOptions) ? s.daOptions : base.daOptions,
-    edgeOptions: Array.isArray(s.edgeOptions) ? s.edgeOptions : combinedEdgeOptionsFrom(s),
-    profileExtras: profileExtrasFromSettings(s),
-    accessories: cleanAccessoriesList(Array.isArray(s.accessories) ? s.accessories : base.accessories),
-    weights: Array.isArray(s.weights) ? s.weights : base.weights,
+    panelMaterials: fillField(Array.isArray(s.panelMaterials) ? s.panelMaterials : base.panelMaterials, base.panelMaterials, "densityKgPerM3"),
+    foamTypes:      fillField(Array.isArray(s.foamTypes)      ? s.foamTypes      : base.foamTypes,      base.foamTypes,      "densityKgPerM3"),
+    mfSets:         fillField(Array.isArray(s.mfSets)         ? s.mfSets         : base.mfSets,         base.mfSets,         "weightKgPerFt"),
+    rOptions:       fillField(Array.isArray(s.rOptions)       ? s.rOptions       : base.rOptions,       base.rOptions,       "weightKgPerFt"),
+    daOptions:      fillField(Array.isArray(s.daOptions)      ? s.daOptions      : base.daOptions,      base.daOptions,      "weightKgPerFt"),
+    edgeOptions:    fillField(Array.isArray(s.edgeOptions)    ? s.edgeOptions    : combinedEdgeOptionsFrom(s), base.edgeOptions, "weightKgPerFt"),
+    profileExtras:  fillField(profileExtrasFromSettings(s),   base.profileExtras, "weightKgPerFt"),
+    accessories:    cleanAccessoriesList(Array.isArray(s.accessories) ? s.accessories : base.accessories),
+    weights:        Array.isArray(s.weights) ? s.weights : base.weights,
   };
+  return merged;
 }
 
 function emitSettingsUpdated() {
@@ -466,6 +517,8 @@ function normalizeQuote(q) {
   delete out.extraFoam;
   const oldCustomFoam = Array.isArray(q.customFoamAddons) ? q.customFoamAddons : (Array.isArray(q.foamCustomAddons) ? q.foamCustomAddons : []);
   out.customFoamAddons = oldCustomFoam.map(normalizeCustomFoamAddon);
+  const oldCustomPanel = Array.isArray(q.customPanelAddons) ? q.customPanelAddons : [];
+  out.customPanelAddons = oldCustomPanel.map(normalizeCustomPanelAddon);
   if (!Array.isArray(out.accessories)) out.accessories = base.accessories;
   else out.accessories = out.accessories
     .filter(a => !isProfileExtraName(a && a.name))
@@ -504,6 +557,7 @@ function makeBlankQuote(seq) {
     },
     foam: [makeFoamConfig("EPE foam")],
     customFoamAddons: [],
+    customPanelAddons: [],
     customerDisplay: { showFoamLayers: false, foamLayerName: "Custom foam insert", foamLayerLines: "Custom foam insert" },
     profiles: {
       mf: { ...PROFILE_DEFAULTS.mf, ...mfSeed() },

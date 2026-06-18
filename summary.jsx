@@ -15,6 +15,7 @@ function CalcSummary({ quote, onSave, onPreview }) {
 
   const rows = [
     ...panelRows,
+    ...(c.customPanelCost > 0 ? [{ k: "Custom panel add-ons", v: c.customPanelCost, dot: "#3b6ea8", sub: c.customPanel.rows.length + " piece" + (c.customPanel.rows.length === 1 ? "" : "s") }] : []),
     { k: "Foam inserts", v: c.foamCost,   dot: "#d8232a", sub: c.foam.layers.length + " layer" + (c.foam.layers.length === 1 ? "" : "s") },
     ...(c.customFoamCost > 0 ? [{ k: "Custom foam add-ons", v: c.customFoamCost, dot: "#c98a1e", sub: c.customFoam.rows.length + " size" + (c.customFoam.rows.length === 1 ? "" : "s") }] : []),
     { k: "Profiles", v: c.profileCost, dot: "#7a5cc0", sub: "MF + Edge" + (c.extrasCost > 0 ? " + Extras" : "") },
@@ -82,6 +83,26 @@ function CalcSummary({ quote, onSave, onPreview }) {
         <span className="k">Grand Total</span>
         <span className="v"><small>₹</small>{inrShort(c.grand)}</span>
       </div>
+
+      {c.weightPerBox > 0 && (
+        <div style={{ padding: "0 14px 4px" }}>
+          <div className="sum-divider" />
+          <div className="sum-gst" style={{ fontWeight: 600, color: "var(--ink-2)" }}>
+            <span>Weight / box</span>
+            <span className="v">{inr(c.weightPerBox, 2)} kg</span>
+          </div>
+          {c.weightBreakdown.map(w => (
+            <div className="sum-gst" key={w.key} style={{ fontSize: 11, color: "var(--ink-4)" }}>
+              <span>• {w.label}</span>
+              <span className="v">{inr(w.kg, 2)} kg</span>
+            </div>
+          ))}
+          <div className="sum-gst" style={{ fontWeight: 600 }}>
+            <span>Total weight ({c.quantity} box{c.quantity === 1 ? "" : "es"})</span>
+            <span className="v">{inr(c.totalWeight, 2)} kg</span>
+          </div>
+        </div>
+      )}
 
       <div style={{ padding: "0 14px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
         <button className="btn btn-primary" style={{ justifyContent: "center" }} onClick={onPreview}>

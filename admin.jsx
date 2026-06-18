@@ -151,7 +151,7 @@ function AdminSettings({ onClose, onSettingsSaved }) {
       const configs = {
         panelMaterials: {
           label: "Panel Materials",
-          needed: "Material / Name, Sheet W, Sheet L, Thickness, Base Rate",
+          needed: "Material / Name, Sheet W, Sheet L, Thickness, Base Rate. Optional: Density (kg/m³)",
           map: (r) => {
             const name = clean(pick(r, ["material", "panel material", "item name", "item", "name"]));
             if (!name) return null;
@@ -166,12 +166,13 @@ function AdminSettings({ onClose, onSettingsSaved }) {
               margin: "",
               overlay: clean(pick(r, ["overlay"])) || "",
               cutMargin: numberOr(pick(r, ["cut margin", "cutting margin"]), 20),
+              densityKgPerM3: numberOr(pick(r, ["density", "density kg/m3", "density kg m3", "density (kg/m3)", "kg/m3", "kg per m3"]), 0),
             };
           },
         },
         foamTypes: {
           label: "Foam Types",
-          needed: "Foam / Name, Sheet W, Sheet L, Thickness, Rate, Adhesive",
+          needed: "Foam / Name, Sheet W, Sheet L, Thickness, Rate, Adhesive. Optional: Density (kg/m³)",
           map: (r) => {
             const name = clean(pick(r, ["foam", "foam type", "material", "item name", "item", "name"]));
             if (!name) return null;
@@ -184,12 +185,13 @@ function AdminSettings({ onClose, onSettingsSaved }) {
               margin: "",
               adhesive: numberOr(pick(r, ["adhesive", "adhesive price", "adhesive rs"]), 40),
               cutMargin: numberOr(pick(r, ["cut margin", "cutting margin"]), 15),
+              densityKgPerM3: numberOr(pick(r, ["density", "density kg/m3", "density kg m3", "density (kg/m3)", "kg/m3", "kg per m3"]), 0),
             };
           },
         },
         mfSets: {
           label: "MF Profile Sets",
-          needed: "Set Name / Name, Male, Female",
+          needed: "Set Name / Name, Male, Female. Optional: Weight kg/ft",
           map: (r) => {
             const name = clean(pick(r, ["set name", "profile set", "mf set", "item name", "item", "name"]));
             if (!name) return null;
@@ -197,12 +199,13 @@ function AdminSettings({ onClose, onSettingsSaved }) {
               name,
               male: numberOr(pick(r, ["male", "male /ft", "male rate", "male price"]), 0),
               female: numberOr(pick(r, ["female", "female /ft", "female rate", "female price"]), ""),
+              weightKgPerFt: numberOr(pick(r, ["weight kg/ft", "weight per ft", "kg/ft", "weight"]), 0),
             };
           },
         },
         edgeOptions: {
           label: "Edge Profiles",
-          needed: "Option / Name, Mode, Rate",
+          needed: "Option / Name, Mode, Rate. Optional: Weight kg/ft",
           map: (r) => {
             const name = clean(pick(r, ["option", "edge profile", "profile", "item name", "item", "name"]));
             if (!name) return null;
@@ -211,12 +214,13 @@ function AdminSettings({ onClose, onSettingsSaved }) {
               name,
               mode: rawMode.includes("manual") ? "manual" : "auto",
               rate: numberOr(pick(r, ["rate", "rate /ft", "base rate", "quote", "price"]), 0),
+              weightKgPerFt: numberOr(pick(r, ["weight kg/ft", "weight per ft", "kg/ft", "weight"]), 0),
             };
           },
         },
         profileExtras: {
           label: "Profile Extras",
-          needed: "Item / Name, Rate",
+          needed: "Item / Name, Rate. Optional: Weight kg/ft",
           map: (r) => {
             const name = clean(pick(r, ["profile extra", "extra", "item name", "item", "name"]));
             if (!name) return null;
@@ -224,6 +228,7 @@ function AdminSettings({ onClose, onSettingsSaved }) {
               name,
               unit: "mm",
               basePrice: numberOr(pick(r, ["rate", "rate /ft", "base rate", "quote", "price"]), 0),
+              weightKgPerFt: numberOr(pick(r, ["weight kg/ft", "weight per ft", "kg/ft", "weight"]), 0),
             };
           },
         },
@@ -319,9 +324,9 @@ function AdminSettings({ onClose, onSettingsSaved }) {
 
       {/* Panel materials */}
       <CatalogCard title="Panel Materials" num="C"
-        importHint="Excel columns: Material, Sheet W, Sheet L, Thickness, Base Rate. Optional: Thickness Options, Cut Margin."
+        importHint="Excel columns: Material, Sheet W, Sheet L, Thickness, Base Rate. Optional: Thickness Options, Cut Margin, Density (kg/m³)."
         onImport={file => importCatalogExcel(file, "panelMaterials")}
-        cols={["Material", "Sheet W", "Sheet L", "Thickness", "Base Rate ₹/sqft"]}
+        cols={["Material", "Sheet W", "Sheet L", "Thickness", "Base Rate ₹/sqft", "Density kg/m³"]}
         rows={s.panelMaterials}
         render={(m, i) => (
           <>
@@ -330,16 +335,17 @@ function AdminSettings({ onClose, onSettingsSaved }) {
             <td className="num"><input className="num-input" type="number" value={m.sheetL} onChange={e => editCatalog("panelMaterials", i, "sheetL", e.target.value)} /></td>
             <td className="num"><input className="num-input" type="number" value={m.thickness} onChange={e => editCatalog("panelMaterials", i, "thickness", e.target.value)} /></td>
             <td className="num"><input className="num-input" type="number" value={m.baseRate} onChange={e => editCatalog("panelMaterials", i, "baseRate", e.target.value)} /></td>
+            <td className="num"><input className="num-input" type="number" step="1" value={m.densityKgPerM3 == null ? "" : m.densityKgPerM3} onChange={e => editCatalog("panelMaterials", i, "densityKgPerM3", e.target.value)} placeholder="0" /></td>
           </>
         )}
-        onAdd={() => addCatalogRow("panelMaterials", { name: "New material", sheetW: 1220, sheetL: 2440, thicknessOptions: [3, 4, 6], thickness: 4, baseRate: 0, margin: "", overlay: "", cutMargin: 20 })}
+        onAdd={() => addCatalogRow("panelMaterials", { name: "New material", sheetW: 1220, sheetL: 2440, thicknessOptions: [3, 4, 6], thickness: 4, baseRate: 0, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 0 })}
         onDel={i => delCatalogRow("panelMaterials", i)} />
 
       {/* Foam types */}
       <CatalogCard title="Foam Types" num="D"
-        importHint="Excel columns: Foam, Sheet W, Sheet L, Thickness, Rate, Adhesive. Optional: Cut Margin."
+        importHint="Excel columns: Foam, Sheet W, Sheet L, Thickness, Rate, Adhesive. Optional: Cut Margin, Density (kg/m³)."
         onImport={file => importCatalogExcel(file, "foamTypes")}
-        cols={["Foam", "Sheet W", "Sheet L", "Thickness", "Rate /mm", "Adhesive ₹"]}
+        cols={["Foam", "Sheet W", "Sheet L", "Thickness", "Rate /mm", "Adhesive ₹", "Density kg/m³"]}
         rows={s.foamTypes}
         render={(f, i) => (
           <>
@@ -349,16 +355,17 @@ function AdminSettings({ onClose, onSettingsSaved }) {
             <td className="num"><input className="num-input" type="number" value={f.thickness} onChange={e => editCatalog("foamTypes", i, "thickness", e.target.value)} /></td>
             <td className="num"><input className="num-input" type="number" step="0.05" value={f.rate} onChange={e => editCatalog("foamTypes", i, "rate", e.target.value)} /></td>
             <td className="num"><input className="num-input" type="number" value={f.adhesive} onChange={e => editCatalog("foamTypes", i, "adhesive", e.target.value)} /></td>
+            <td className="num"><input className="num-input" type="number" step="1" value={f.densityKgPerM3 == null ? "" : f.densityKgPerM3} onChange={e => editCatalog("foamTypes", i, "densityKgPerM3", e.target.value)} placeholder="0" /></td>
           </>
         )}
-        onAdd={() => addCatalogRow("foamTypes", { name: "New foam", sheetW: 1000, sheetL: 2000, thickness: 30, rate: 1, margin: "", adhesive: 40, cutMargin: 15 })}
+        onAdd={() => addCatalogRow("foamTypes", { name: "New foam", sheetW: 1000, sheetL: 2000, thickness: 30, rate: 1, margin: "", adhesive: 40, cutMargin: 15, densityKgPerM3: 0 })}
         onDel={i => delCatalogRow("foamTypes", i)} />
 
       {/* MF sets */}
       <CatalogCard title="MF Profile Sets" num="E"
-        importHint="Excel columns: Set Name, Male, Female."
+        importHint="Excel columns: Set Name, Male, Female. Optional: Weight kg/ft."
         onImport={file => importCatalogExcel(file, "mfSets")}
-        cols={["Set Name", "Male ₹/ft", "Female ₹/ft", "Combined"]}
+        cols={["Set Name", "Male ₹/ft", "Female ₹/ft", "Combined", "Weight kg/ft"]}
         rows={s.mfSets}
         render={(m, i) => (
           <>
@@ -366,16 +373,17 @@ function AdminSettings({ onClose, onSettingsSaved }) {
             <td className="num"><input className="num-input" type="number" step="0.25" value={m.male} onChange={e => editCatalog("mfSets", i, "male", e.target.value)} /></td>
             <td className="num"><input className="num-input" type="number" step="0.25" placeholder="0" value={m.female} onChange={e => editCatalog("mfSets", i, "female", e.target.value)} /></td>
             <td className="num mono" style={{ color: "var(--navy)", fontWeight: 600 }}>₹{(toNumberSafe(m.male, 0) + toNumberSafe(m.female, 0)).toFixed(2)}</td>
+            <td className="num"><input className="num-input" type="number" step="0.001" placeholder="0" value={m.weightKgPerFt == null ? "" : m.weightKgPerFt} onChange={e => editCatalog("mfSets", i, "weightKgPerFt", e.target.value)} /></td>
           </>
         )}
-        onAdd={() => addCatalogRow("mfSets", { name: "New MF Set", male: 0, female: "" })}
+        onAdd={() => addCatalogRow("mfSets", { name: "New MF Set", male: 0, female: "", weightKgPerFt: 0 })}
         onDel={i => delCatalogRow("mfSets", i)} />
 
       {/* Edge Profiles */}
       <CatalogCard title="Edge Profiles" num="F"
-        importHint="Excel columns: Option, Mode, Rate. Mode can be Auto edges or Manual ft."
+        importHint="Excel columns: Option, Mode, Rate. Mode can be Auto edges or Manual ft. Optional: Weight kg/ft."
         onImport={file => importCatalogExcel(file, "edgeOptions")}
-        cols={["Option", "Mode", "Rate ₹/ft"]}
+        cols={["Option", "Mode", "Rate ₹/ft", "Weight kg/ft"]}
         rows={s.edgeOptions || []}
         render={(o, i) => (
           <>
@@ -387,24 +395,26 @@ function AdminSettings({ onClose, onSettingsSaved }) {
               </select>
             </td>
             <td className="num"><input className="num-input" type="number" value={o.rate} onChange={e => editCatalog("edgeOptions", i, "rate", e.target.value)} /></td>
+            <td className="num"><input className="num-input" type="number" step="0.001" placeholder="0" value={o.weightKgPerFt == null ? "" : o.weightKgPerFt} onChange={e => editCatalog("edgeOptions", i, "weightKgPerFt", e.target.value)} /></td>
           </>
         )}
-        onAdd={() => addCatalogRow("edgeOptions", { name: "New Edge Profile", mode: "auto", rate: 0 })}
+        onAdd={() => addCatalogRow("edgeOptions", { name: "New Edge Profile", mode: "auto", rate: 0, weightKgPerFt: 0 })}
         onDel={i => delCatalogRow("edgeOptions", i)} />
 
       {/* Profile Extras */}
       <CatalogCard title="Profile Extras" num="G"
-        importHint="Excel columns: Item, Rate. These appear in the Profile Extras quote section and users enter required mm there."
+        importHint="Excel columns: Item, Rate. Optional: Weight kg/ft. These appear in the Profile Extras quote section and users enter required mm there."
         onImport={file => importCatalogExcel(file, "profileExtras")}
-        cols={["Item", "Rate ₹/ft"]}
+        cols={["Item", "Rate ₹/ft", "Weight kg/ft"]}
         rows={s.profileExtras || []}
         render={(o, i) => (
           <>
             <td><input value={o.name} onChange={e => editCatalog("profileExtras", i, "name", e.target.value)} /></td>
             <td className="num"><input className="num-input" type="number" value={o.basePrice} onChange={e => editCatalog("profileExtras", i, "basePrice", e.target.value)} /></td>
+            <td className="num"><input className="num-input" type="number" step="0.001" placeholder="0" value={o.weightKgPerFt == null ? "" : o.weightKgPerFt} onChange={e => editCatalog("profileExtras", i, "weightKgPerFt", e.target.value)} /></td>
           </>
         )}
-        onAdd={() => addCatalogRow("profileExtras", { name: "New Profile Extra", unit: "mm", basePrice: 0 })}
+        onAdd={() => addCatalogRow("profileExtras", { name: "New Profile Extra", unit: "mm", basePrice: 0, weightKgPerFt: 0 })}
         onDel={i => delCatalogRow("profileExtras", i)} />
 
       {/* Accessories */}
@@ -438,15 +448,15 @@ function AdminSettings({ onClose, onSettingsSaved }) {
         onAdd={() => addCatalogRow("accessories", { name: "New item", category: "", unit: "pc", basePrice: 0, weightKg: "" })}
         onDel={i => delCatalogRow("accessories", i)} />
 
-      {/* Weights — added to every quotation total weight */}
-      <CatalogCard title="Weights (kg)" num="I"
-        importHint="Excel columns: Item, Weight."
+      {/* Additional fixed weights — added on top of the live weight calc (panels/foam/profiles/accessories) */}
+      <CatalogCard title="Additional Fixed Weights (kg)" num="I"
+        importHint="Excel columns: Item, Weight. Use this for fixed items not in the live density calc (e.g. packaging straps, manuals, labels)."
         onImport={file => importCatalogExcel(file, "weights")}
         cols={["Item", "Weight (kg)"]}
         rows={s.weights || []}
         render={(w, i) => (
           <>
-            <td><input value={w.item} onChange={e => editCatalog("weights", i, "item", e.target.value)} placeholder="e.g. Empty case body" /></td>
+            <td><input value={w.item} onChange={e => editCatalog("weights", i, "item", e.target.value)} placeholder="e.g. Packaging straps, manual" /></td>
             <td className="num"><input className="num-input" type="number" step="0.01" value={w.kg} onChange={e => editCatalog("weights", i, "kg", e.target.value)} placeholder="0" /></td>
           </>
         )}

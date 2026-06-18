@@ -125,9 +125,11 @@ function partiesBlock(doc, quote, startY) {
 }
 
 function totalsRows(c) {
+  // Customer-facing only — never show raw cost basis (subtotalPerBox × qty), because
+  // the gap between that and "Total before GST" would expose the margin. Show the
+  // marked-up subtotal directly.
   const rows = [
-    ["Subtotal / box", money(c.subtotalPerBox)],
-    ["x " + c.quantity + " box" + (c.quantity === 1 ? "" : "es"), money(c.boxesTotal)],
+    ["Subtotal", money(c.boxesTotal + c.finalMarginValue)],
   ];
   if (c.shippingValue > 0) rows.push(["Shipping", money(c.shippingValue)]);
   rows.push(["Total before GST", money(c.totalBeforeGst)]);
@@ -288,6 +290,23 @@ function buildInternalPDF(quote) {
   if (c.acp.abs) {
     tbl("ABS Silver Layer (linked to MDF) - final Rs " + c.acp.abs.finalRate.toFixed(2) + "/sqft", pieceHead, pieceBody(c.acp.abs));
   }
+
+  if (c.customPanel && c.customPanel.rows.length > 0) {
+    tbl("Custom Panel Add-ons",
+      [["Name", "Material", "Size (mm)", "Qty", "Sqft", "Rate Rs/sqft", "Margin", "Overlay", "Total"]],
+      c.customPanel.rows.map(r => [
+        r.name,
+        r.material,
+        inr(r.length, 0) + "x" + inr(r.width, 0) + "x" + inr(r.thickness, 0),
+        String(r.qty),
+        r.sqft.toFixed(2),
+        String(r.rate),
+        r.margin ? inr(r.margin, 0) : "-",
+        r.overlay ? inr(r.overlay, 0) : "-",
+        inr(r.total, 0),
+      ]));
+  }
+
   c.foam.layers.forEach((l, i) => {
     tbl("Foam Layer " + (i + 1) + ": " + l.type + " " + l.thk + "mm - sheet cost Rs " + inr(l.sheetCost, 0) + " - cut +" + l.cut + "mm",
       pieceHead, pieceBody(l));
@@ -324,6 +343,7 @@ function buildInternalPDF(quote) {
   // totals
   const tRows = [
     [c.acp.main.material + " panels" + (c.acp.abs ? " + ABS" : ""), money(c.acpCost, 0)],
+    ...(c.customPanelCost > 0 ? [["Custom panel add-ons", money(c.customPanelCost, 0)]] : []),
     ["Foam inserts", money(c.foamCost, 0)],
     ...(c.customFoamCost > 0 ? [["Custom foam add-ons", money(c.customFoamCost, 0)]] : []),
     ["MF profile set", money(c.mfCost, 0)],
@@ -350,6 +370,25 @@ function buildInternalPDF(quote) {
     margin: { left: PAGE.mx, right: PAGE.mx },
     didParseCell: (d) => { if (d.row.index === tRows.length - 1) { d.cell.styles.textColor = RED; d.cell.styles.fontSize = 11; } },
   });
+  y = doc.lastAutoTable.finalY + 14;
+
+  // Weight breakdown (live, density-based)
+  if (c.weightPerBox > 0) {
+    if (y > 660) { doc.addPage(); y = 50; }
+    const wRows = c.weightBreakdown.map(w => [w.label, inr(w.kg, 3) + " kg", inr(w.kg * c.quantity, 3) + " kg"]);
+    wRows.push(["Weight per box / Total", inr(c.weightPerBox, 3) + " kg", inr(c.totalWeight, 3) + " kg"]);
+    doc.autoTable({
+      startY: y,
+      head: [[{ content: "Weight Breakdown (live, density-based)", colSpan: 3, styles: { halign: "left", fillColor: [240, 243, 247], textColor: NAVY, fontStyle: "bold" } }], ["Source", "kg / box", "kg total (" + c.quantity + ")"]],
+      body: wRows,
+      theme: "grid",
+      headStyles: { fillColor: NAVY, textColor: 255, fontSize: 8 },
+      bodyStyles: { fontSize: 8, textColor: INK },
+      columnStyles: { 0: { halign: "left" }, 1: { halign: "right" }, 2: { halign: "right" } },
+      margin: { left: PAGE.mx, right: PAGE.mx },
+      didParseCell: (d) => { if (d.section === "body" && d.row.index === wRows.length - 1) { d.cell.styles.fontStyle = "bold"; d.cell.styles.textColor = NAVY; } },
+    });
+  }
   return doc;
 }
 

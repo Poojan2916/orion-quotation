@@ -60,6 +60,31 @@ function InternalCosting({ quote, onBack, onEdit, onCustomer }) {
               )}
             </div>
 
+            {c.customPanel && c.customPanel.rows.length > 0 && (
+              <div className="ic-section">
+                <h3>Custom Panel Add-ons</h3>
+                <table className="ic-tbl">
+                  <thead><tr><th>Name</th><th>Material</th><th className="num">Size (L×W×Thk)</th><th className="num">Qty</th><th className="num">Sqft</th><th className="num">Rate ₹/sqft</th><th className="num">Margin</th><th className="num">Overlay</th><th className="num">Piece cost</th><th className="num">Total</th></tr></thead>
+                  <tbody>
+                    {c.customPanel.rows.map(r => (
+                      <tr key={r.id}>
+                        <td>{r.name}</td>
+                        <td>{r.material}</td>
+                        <td className="num">{inr(r.length, 0)}×{inr(r.width, 0)}×{inr(r.thickness, 0)} mm</td>
+                        <td className="num">{r.qty}</td>
+                        <td className="num">{r.sqft.toFixed(2)}</td>
+                        <td className="num">{r.rate}</td>
+                        <td className="num">{r.margin || "—"}</td>
+                        <td className="num">{r.overlay || "—"}</td>
+                        <td className="num">{inr(r.pieceCost, 0)}</td>
+                        <td className="num strong">{inr(r.total, 0)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
             {/* Foam breakdown — one block per layer, same 5-category logic */}
             {c.foam.layers.map((l, idx) => (
               <div className="ic-section" key={l.id}>
@@ -138,6 +163,7 @@ function InternalCosting({ quote, onBack, onEdit, onCustomer }) {
             {/* Totals */}
             <div className="ic-totals">
               <Row label={c.acp.main.material + " panels" + (c.acp.abs ? " + ABS Silver" : "")} value={c.acpCost} />
+              {c.customPanelCost > 0 && <Row label="Custom panel add-ons" value={c.customPanelCost} />}
               <Row label="Foam inserts" value={c.foamCost} />
               {c.customFoamCost > 0 && <Row label="Custom foam add-ons" value={c.customFoamCost} />}
               <Row label="MF profile set" value={c.mfCost} />
@@ -153,6 +179,27 @@ function InternalCosting({ quote, onBack, onEdit, onCustomer }) {
               <Row label={"GST @ " + SETTINGS.gstPercent + "%"} value={c.gst} />
               <div className="ic-line grand"><span>Grand Total</span><b className="mono">₹{inr(c.grand)}</b></div>
             </div>
+
+            {/* Weight breakdown — live, density-based */}
+            {c.weightPerBox > 0 && (
+              <div className="ic-section" style={{ marginTop: 18 }}>
+                <h3>Weight Breakdown (live, density-based)</h3>
+                <table className="ic-tbl">
+                  <thead><tr><th>Source</th><th className="num">kg / box</th><th className="num">kg total ({c.quantity})</th></tr></thead>
+                  <tbody>
+                    {c.weightBreakdown.map(w => (
+                      <tr key={w.key}>
+                        <td>{w.label}</td>
+                        <td className="num">{inr(w.kg, 3)}</td>
+                        <td className="num">{inr(w.kg * c.quantity, 3)}</td>
+                      </tr>
+                    ))}
+                    <tr><td className="strong">Weight per box</td><td className="num strong">{inr(c.weightPerBox, 3)}</td><td className="num strong">{inr(c.totalWeight, 3)}</td></tr>
+                  </tbody>
+                </table>
+                <p className="note" style={{ marginTop: 6 }}>Panels/foam/custom pieces = cut-area × thickness × density. Profiles = ft × kg/ft. Accessories = qty × per-unit weight. Density and kg/ft values come from Settings (sections C, D, E, F, G, H). Section I "Additional Fixed Weights" is added on top.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
