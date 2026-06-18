@@ -507,13 +507,20 @@ function AccessoriesSection({ quote, patch, calc }) {
 
   const groupOf = (name) => {
     const n = String(name || "").toLowerCase();
-    if (n.includes("corner")) return "Corners";
-    if (n.includes("lock")) return "Locks";
-    if (n.includes("handle")) return "Handles";
-    if (n.includes("hinge")) return "Hinges";
-    return "Other Hardware";
+    if (n.includes("corner"))                                          return "Corners";
+    if (n.includes("lock"))                                            return "Locks";
+    if (n.includes("hinge"))                                           return "Hinges";
+    if (
+      n.includes("wheel") || n.includes("trolley") || n.includes("castor") ||
+      n.includes("rubber bush") || n.includes("rubber foot") ||
+      n.includes("support leg") || n.includes("foot leg") ||
+      n === "rubber foot" || n === "rubber bush" ||
+      (n.includes("foot") && !n.includes("footprint")) ||
+      (n.includes("leg") && !n.includes("angle"))
+    )                                                                   return "Feet, Wheels & Support";
+    return "Extra / Other Hardware";
   };
-  const groupOrder = ["Corners", "Locks", "Handles", "Hinges", "Other Hardware"];
+  const groupOrder = ["Corners", "Locks", "Hinges", "Feet, Wheels & Support", "Extra / Other Hardware"];
   const grouped = groupOrder
     .map(label => ({ label, rows: calc.rows.filter(r => groupOf(r.name) === label) }))
     .filter(g => g.rows.length);
@@ -547,7 +554,7 @@ function AccessoriesSection({ quote, patch, calc }) {
   return (
     <div className="card section-card">
       <div className="section-head"><span className="num">6</span><h3>Accessories &amp; Hardware</h3>
-        <span className="hint">view split: corners · locks · handles · hinges</span>
+        <span className="hint">corners · locks · hinges · feet &amp; wheels · extra hardware</span>
       </div>
       <div className="table-wrap">
         <table className="tbl">

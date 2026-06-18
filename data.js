@@ -22,7 +22,7 @@ const ACP_SHEET = { w: 1220, h: 2420 }; // mm standard sheet (fallback)
 const PANEL_MATERIALS = [
   { name: "ACP",        sheetW: 1220, sheetL: 2420, thicknessOptions: [3, 4, 6],      thickness: 4,  baseRate: 38, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 1500 },
   { name: "MDF",        sheetW: 1220, sheetL: 2440, thicknessOptions: [6, 9, 12, 18], thickness: 12, baseRate: 25, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 750 },
-  { name: "Plywood",    sheetW: 1220, sheetL: 2440, thicknessOptions: [6, 12, 18],    thickness: 12, baseRate: 35, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 600 },
+  { name: "Plywood",    sheetW: 1220, sheetL: 2440, thicknessOptions: [6, 12, 18],    thickness: 12, baseRate: 35, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 650 },
   { name: "ABS Silver", sheetW: 1220, sheetL: 2440, thicknessOptions: [1.5, 2, 3],    thickness: 2,  baseRate: 55, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 1050 },
 ];
 function panelMaterial(name) { return SETTINGS.panelMaterials.find(m => m.name === name) || SETTINGS.panelMaterials[0]; }
@@ -31,11 +31,11 @@ function panelMaterial(name) { return SETTINGS.panelMaterials.find(m => m.name =
 // Each carries: sheet size, default thickness, rate/mm, margin, adhesive, cut margin.
 // densityKgPerM3 drives the live weight calc (Section 4). Sensible factory defaults below — admin can override per material in Settings.
 const FOAM_TYPES = [
-  { name: "EPE foam",       sheetW: 1400, sheetL: 2000, thickness: 40, rate: 0.85, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 35 },
-  { name: "XLPE foam",      sheetW: 1000, sheetL: 2000, thickness: 25, rate: 1.40, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 80 },
+  { name: "EPE foam",       sheetW: 1400, sheetL: 2000, thickness: 40, rate: 0.85, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 25 },
+  { name: "XLPE foam",      sheetW: 1000, sheetL: 2000, thickness: 25, rate: 1.40, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 60 },
   { name: "PU foam",        sheetW: 1000, sheetL: 2000, thickness: 50, rate: 0.65, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 30 },
-  { name: "Charcoal foam",  sheetW: 1000, sheetL: 2000, thickness: 20, rate: 1.10, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 40 },
-  { name: "Egg-crate foam", sheetW: 1000, sheetL: 2000, thickness: 30, rate: 0.95, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 40 },
+  { name: "Charcoal foam",  sheetW: 1000, sheetL: 2000, thickness: 20, rate: 1.10, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 28 },
+  { name: "Egg-crate foam", sheetW: 1000, sheetL: 2000, thickness: 30, rate: 0.95, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 25 },
 ];
 function foamType(name) { return SETTINGS.foamTypes.find(f => f.name === name) || SETTINGS.foamTypes[0]; }
 
@@ -259,19 +259,34 @@ function customerVisibleAccessoryRows(rows) {
 // Accessory & hardware presets. unit is "pc" or "ft".
 //   pc-based: total = qty × (base + optional margin)
 //   ft-based: total = lengthFt × (base + optional margin)
+// Group keywords (for the quote-form split view):
+//   Corners: name contains "corner"
+//   Locks:   name contains "lock"
+//   Hinges:  name contains "hinge"
+//   Feet, Wheels & Support: wheel/trolley/castor/foot/rubber bush/support leg/leg
+//   Extra / Other Hardware: everything else (handles, rivets, adhesive, brackets, profiles…)
 const ACCESSORY_PRESETS = [
+  // ── Corners ────────────────────────────────────────────────────────────────
   { name: "Corner set",                      unit: "pc", basePrice: 120 },
   { name: "MF MS corner bracket",            unit: "pc", basePrice: 50  },
-  { name: "Plastic connector for R profile", unit: "pc", basePrice: 32 },
-  { name: "R Pro support clip",              unit: "pc", basePrice: 56  },
+  // ── Locks ──────────────────────────────────────────────────────────────────
   { name: "Regular Lock Orion",              unit: "pc", basePrice: 450 },
-  { name: "Black Silver Handle",             unit: "pc", basePrice: 1200 },
+  // ── Hinges ─────────────────────────────────────────────────────────────────
   { name: "Big Hinges",                      unit: "pc", basePrice: 640 },
-  { name: "Rivets",                          unit: "pc", basePrice: 200 },
-  { name: "Adhesive",                        unit: "pc", basePrice: 250 },
+  // ── Feet, Wheels & Support ─────────────────────────────────────────────────
+  { name: "Rubber Bush",                     unit: "pc", basePrice: 25  },
+  { name: "Rubber Foot",                     unit: "pc", basePrice: 40  },
+  { name: "Support Leg",                     unit: "pc", basePrice: 120 },
+  { name: "Castor Wheel",                    unit: "pc", basePrice: 400 },
+  { name: "Castor Wheel with Brake",         unit: "pc", basePrice: 550 },
   { name: "Trolley",                         unit: "pc", basePrice: 2200 },
   { name: "Wheels",                          unit: "pc", basePrice: 350 },
-  // pc-based hardware
+  // ── Extra / Other Hardware ─────────────────────────────────────────────────
+  { name: "Black Silver Handle",             unit: "pc", basePrice: 1200 },
+  { name: "Rivets",                          unit: "pc", basePrice: 200 },
+  { name: "Adhesive",                        unit: "pc", basePrice: 250 },
+  { name: "Plastic connector for R profile", unit: "pc", basePrice: 32 },
+  { name: "R Pro support clip",              unit: "pc", basePrice: 56  },
   { name: "M Profile Black - 720mm - 4mm",   unit: "pc", basePrice: 13 },
   { name: "F Profile Black - 720mm - 4mm",   unit: "pc", basePrice: 13 },
   { name: "Square Tube Black 12x12 1370mm",  unit: "pc", basePrice: 19 },
