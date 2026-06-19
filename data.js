@@ -31,11 +31,11 @@ function panelMaterial(name) { return SETTINGS.panelMaterials.find(m => m.name =
 // Each carries: sheet size, default thickness, rate/mm, margin, adhesive, cut margin.
 // densityKgPerM3 drives the live weight calc (Section 4). Sensible factory defaults below — admin can override per material in Settings.
 const FOAM_TYPES = [
-  { name: "EPE foam",       sheetW: 1400, sheetL: 2000, thickness: 40, rate: 0.85, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 25 },
-  { name: "XLPE foam",      sheetW: 1000, sheetL: 2000, thickness: 25, rate: 1.40, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 60 },
-  { name: "PU foam",        sheetW: 1000, sheetL: 2000, thickness: 50, rate: 0.65, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 30 },
-  { name: "Charcoal foam",  sheetW: 1000, sheetL: 2000, thickness: 20, rate: 1.10, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 28 },
-  { name: "Egg-crate foam", sheetW: 1000, sheetL: 2000, thickness: 30, rate: 0.95, margin: "",  adhesive: 40, cutMargin: 15, densityKgPerM3: 25 },
+  { name: "EPE foam",       sheetW: 1400, sheetL: 2000, thickness: 40, rate: 0.85, margin: "",  adhesive: 40, cutMargin: 20, densityKgPerM3: 25 },
+  { name: "XLPE foam",      sheetW: 1000, sheetL: 2000, thickness: 25, rate: 1.40, margin: "",  adhesive: 40, cutMargin: 20, densityKgPerM3: 60 },
+  { name: "PU foam",        sheetW: 1000, sheetL: 2000, thickness: 50, rate: 0.65, margin: "",  adhesive: 40, cutMargin: 20, densityKgPerM3: 30 },
+  { name: "Charcoal foam",  sheetW: 1000, sheetL: 2000, thickness: 20, rate: 1.10, margin: "",  adhesive: 40, cutMargin: 20, densityKgPerM3: 28 },
+  { name: "Egg-crate foam", sheetW: 1000, sheetL: 2000, thickness: 30, rate: 0.95, margin: "",  adhesive: 40, cutMargin: 20, densityKgPerM3: 25 },
 ];
 function foamType(name) { return SETTINGS.foamTypes.find(f => f.name === name) || SETTINGS.foamTypes[0]; }
 
@@ -339,7 +339,7 @@ function factorySettings() {
     company: { ...COMPANY },
     gstPercent: 18,
     cutMargin: 20,        // default panel cutting margin (mm)
-    foamCutMargin: 15,    // default foam cutting margin (mm)
+    foamCutMargin: 20,    // default foam cutting margin (mm)
     acpSheetW: 1220,
     acpSheetL: 2420,
     validityDays: 15,

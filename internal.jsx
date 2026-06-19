@@ -62,9 +62,19 @@ function InternalCosting({ quote, onBack, onEdit, onCustomer }) {
 
             {c.customPanel && c.customPanel.rows.length > 0 && (
               <div className="ic-section">
-                <h3>Custom Panel Add-ons</h3>
+                <h3>Custom Panel Add-ons (sheet-cutting yield)</h3>
                 <table className="ic-tbl">
-                  <thead><tr><th>Name</th><th>Material</th><th className="num">Size (L×W×Thk)</th><th className="num">Qty</th><th className="num">Sqft</th><th className="num">Rate ₹/sqft</th><th className="num">Margin</th><th className="num">Overlay</th><th className="num">Piece cost</th><th className="num">Total</th></tr></thead>
+                  <thead><tr>
+                    <th>Name</th><th>Material</th>
+                    <th className="num">Size (L×W×Thk)</th>
+                    <th className="num">Qty</th>
+                    <th className="num">Sheet sqft</th>
+                    <th className="num">Sheet cost</th>
+                    <th className="num">Fit/sht</th>
+                    <th className="num">Rate ₹/sqft</th>
+                    <th className="num">Cost/pc</th>
+                    <th className="num">Total</th>
+                  </tr></thead>
                   <tbody>
                     {c.customPanel.rows.map(r => (
                       <tr key={r.id}>
@@ -72,12 +82,12 @@ function InternalCosting({ quote, onBack, onEdit, onCustomer }) {
                         <td>{r.material}</td>
                         <td className="num">{inr(r.length, 0)}×{inr(r.width, 0)}×{inr(r.thickness, 0)} mm</td>
                         <td className="num">{r.qty}</td>
-                        <td className="num">{r.sqft.toFixed(2)}</td>
-                        <td className="num">{r.rate}</td>
-                        <td className="num">{r.margin || "—"}</td>
-                        <td className="num">{r.overlay || "—"}</td>
-                        <td className="num">{inr(r.pieceCost, 0)}</td>
-                        <td className="num strong">{inr(r.total, 0)}</td>
+                        <td className="num">{r.sheetSqft} sqft</td>
+                        <td className="num">₹{inr(r.sheetCost, 0)}</td>
+                        <td className="num">{r.fit > 0 ? r.fit : "—"}</td>
+                        <td className="num">{r.finalRate}</td>
+                        <td className="num">₹{inr(r.costPerPiece, 0)}</td>
+                        <td className="num strong">₹{inr(r.total, 0)}</td>
                       </tr>
                     ))}
                   </tbody>

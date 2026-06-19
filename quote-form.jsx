@@ -262,13 +262,16 @@ function AcpSection({ quote, patchAcp, patch, calc, customCalc }) {
                 <tr>
                   <th>Name</th>
                   <th>Material</th>
-                  <th className="num">L</th>
-                  <th className="num">W</th>
+                  <th className="num">L (mm)</th>
+                  <th className="num">W (mm)</th>
                   <th className="num">Thickness</th>
                   <th className="num">Qty</th>
                   <th className="num">Rate ₹/sqft</th>
                   <th className="num">Margin</th>
                   <th className="num">Overlay</th>
+                  <th className="num">Sheet</th>
+                  <th className="num">Fit/sht</th>
+                  <th className="num">Cost/pc</th>
                   <th className="num">Total</th>
                   <th></th>
                 </tr>
@@ -276,31 +279,34 @@ function AcpSection({ quote, patchAcp, patch, calc, customCalc }) {
               <tbody>
                 {customCalcRows.map(r => (
                   <tr key={r.id}>
-                    <td style={{ minWidth: 230 }}><input value={r.name} placeholder="Additional panel" onChange={e => setCustomRow(r.id, "name", e.target.value)} /></td>
-                    <td style={{ minWidth: 160 }}>
+                    <td style={{ minWidth: 180 }}><input value={r.name} placeholder="Additional panel" onChange={e => setCustomRow(r.id, "name", e.target.value)} /></td>
+                    <td style={{ minWidth: 140 }}>
                       <select value={r.material} onChange={e => onCustomMaterial(r.id, e.target.value)}>
                         {SETTINGS.panelMaterials.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                       </select>
                     </td>
-                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 105 }} type="number" value={r.length} onChange={e => setCustomRow(r.id, "length", e.target.value)} onFocus={e => e.target.select()} /></td>
-                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 105 }} type="number" value={r.width} onChange={e => setCustomRow(r.id, "width", e.target.value)} onFocus={e => e.target.select()} /></td>
-                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 95 }} type="number" value={r.thickness} onChange={e => setCustomRow(r.id, "thickness", e.target.value)} onFocus={e => e.target.select()} /></td>
-                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 80 }} type="number" value={r.qty} onChange={e => setCustomRow(r.id, "qty", e.target.value)} onFocus={e => e.target.select()} /></td>
-                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 95 }} type="number" step="0.05" value={r.rate} onChange={e => setCustomRow(r.id, "rate", e.target.value)} onFocus={e => e.target.select()} /></td>
-                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 95 }} type="number" placeholder="0" value={r.margin} onChange={e => setCustomRow(r.id, "margin", e.target.value)} onFocus={e => e.target.select()} /></td>
-                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 95 }} type="number" placeholder="0" value={r.overlay} onChange={e => setCustomRow(r.id, "overlay", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 90 }} type="number" value={r.length} onChange={e => setCustomRow(r.id, "length", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 90 }} type="number" value={r.width} onChange={e => setCustomRow(r.id, "width", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 80 }} type="number" value={r.thickness} onChange={e => setCustomRow(r.id, "thickness", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 70 }} type="number" value={r.qty} onChange={e => setCustomRow(r.id, "qty", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 85 }} type="number" step="0.05" value={r.rate} onChange={e => setCustomRow(r.id, "rate", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 80 }} type="number" placeholder="0" value={r.margin} onChange={e => setCustomRow(r.id, "margin", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num"><input className="num-input cell-input" style={{ width: "100%", minWidth: 80 }} type="number" placeholder="0" value={r.overlay} onChange={e => setCustomRow(r.id, "overlay", e.target.value)} onFocus={e => e.target.select()} /></td>
+                    <td className="num mono" style={{ color: "var(--ink-3)", fontSize: 12 }}>{r.sheetSqft} sqft<br />₹{inr(r.sheetCost, 0)}</td>
+                    <td className="num mono">{r.fit > 0 ? r.fit : "—"}</td>
+                    <td className="num mono">₹{inr(r.costPerPiece, 0)}</td>
                     <td className="num row-total">₹{inr(r.total, 0)}</td>
                     <td><button className="btn btn-danger-ghost" onClick={() => delCustomRow(r.id)} title="Remove"><Icon name="trash" /></button></td>
                   </tr>
                 ))}
-                {customCalcRows.length === 0 && <tr><td colSpan="11" style={{ textAlign: "center", color: "var(--ink-4)", padding: 14 }}>No custom panel add-ons added</td></tr>}
+                {customCalcRows.length === 0 && <tr><td colSpan="14" style={{ textAlign: "center", color: "var(--ink-4)", padding: 14 }}>No custom panel add-ons added</td></tr>}
               </tbody>
             </table>
           </div>
           <div className="row-add" style={{ display: "flex", alignItems: "center" }}>
             <button className="btn-addrow" onClick={addCustomRow}><Icon name="plus" /> Add custom panel size</button>
             <div style={{ flex: 1 }} />
-            <span className="note">Cost = (L/1000 × W/1000) sqft × (rate + margin + overlay) × qty</span>
+            <span className="note">Sheet-cutting yield: cost/pc = sheet cost ÷ pieces-per-sheet (with cutting margin + 90° rotation). Same nesting logic as main panel section.</span>
           </div>
         </div>
 

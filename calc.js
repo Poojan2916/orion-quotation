@@ -142,11 +142,12 @@ function calcCustomFoamAddons(quote) {
   return { rows, cost };
 }
 
-// Custom panel add-ons — arbitrary panel pieces priced per sqft.
-// piece cost = (L/1000) × (W/1000) m²-equivalent × (rate + margin + overlay) ₹/sqft × qty
-// (uses the same sqft-via-sqmm conversion as the main panel layer for consistency)
+// Custom panel add-ons — arbitrary panel pieces priced by sheet-cutting yield.
+// Same nesting logic as the main panel section: piece+cutMargin fitted on the material's sheet.
+// costPerPiece = sheetCost / piecesPerSheet; total = costPerPiece × qty.
 function calcCustomPanelAddons(quote) {
   const rows = (Array.isArray(quote.customPanelAddons) ? quote.customPanelAddons : []).map(row => {
+    const mat = (typeof panelMaterial === "function") ? panelMaterial(row.material || "ACP") : {};
     const length = num(row.length);
     const width = num(row.width);
     const thickness = num(row.thickness);
@@ -154,14 +155,27 @@ function calcCustomPanelAddons(quote) {
     const rate = num(row.rate);
     const margin = num(row.margin);
     const overlay = num(row.overlay);
-    const sqft = (length * width) / SQMM_PER_SQFT;
+    const cutMargin = num(mat.cutMargin || 20);
+
+    // Sheet dimensions & cost from the selected material
+    const sheetW = num(mat.sheetW) || 1220;
+    const sheetL = num(mat.sheetL) || 2440;
+    const sheetSqft = Math.round((sheetW * sheetL) / SQMM_PER_SQFT);
     const finalRate = rate + margin + overlay;
-    const pieceCost = sqft * finalRate;
-    const total = pieceCost * qty;
-    return { ...row, length, width, thickness, qty, rate, margin, overlay, sqft, finalRate, pieceCost, total };
+    const sheetCost = sheetSqft * finalRate;
+
+    // Nesting: piece + cut margin → how many fit per sheet (with 90° rotation)
+    const cutA = length + cutMargin;
+    const cutB = width + cutMargin;
+    const fit = piecesPerSheet(cutA, cutB, sheetL, sheetW);
+    const costPerPiece = fit > 0 ? sheetCost / fit : sheetCost;
+    const costRaw = costPerPiece * qty;
+    const total = Math.round(costRaw);
+
+    return { ...row, length, width, thickness, qty, rate, margin, overlay, sheetW, sheetL, sheetSqft, finalRate, sheetCost, cutMargin, cutA, cutB, fit, costPerPiece, costRaw, total };
   });
-  const cost = rows.reduce((s, r) => s + r.total, 0);
-  return { rows, cost };
+  const cost = rows.reduce((s, r) => s + r.costRaw, 0);
+  return { rows, cost: Math.round(cost) };
 }
 
 // ---- Profiles: MF Profile Set + Edge Profile ----

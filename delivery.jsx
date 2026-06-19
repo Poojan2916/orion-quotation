@@ -292,18 +292,19 @@ function buildInternalPDF(quote) {
   }
 
   if (c.customPanel && c.customPanel.rows.length > 0) {
-    tbl("Custom Panel Add-ons",
-      [["Name", "Material", "Size (mm)", "Qty", "Sqft", "Rate Rs/sqft", "Margin", "Overlay", "Total"]],
+    tbl("Custom Panel Add-ons (sheet-cutting yield)",
+      [["Name", "Material", "Size (mm)", "Qty", "Sheet sqft", "Sheet cost", "Fit/sht", "Rate Rs/sqft", "Cost/pc", "Total"]],
       c.customPanel.rows.map(r => [
         r.name,
         r.material,
         inr(r.length, 0) + "x" + inr(r.width, 0) + "x" + inr(r.thickness, 0),
         String(r.qty),
-        r.sqft.toFixed(2),
-        String(r.rate),
-        r.margin ? inr(r.margin, 0) : "-",
-        r.overlay ? inr(r.overlay, 0) : "-",
-        inr(r.total, 0),
+        String(r.sheetSqft) + " sqft",
+        "Rs " + inr(r.sheetCost, 0),
+        r.fit > 0 ? String(r.fit) : "—",
+        String(r.finalRate),
+        "Rs " + inr(r.costPerPiece, 0),
+        "Rs " + inr(r.total, 0),
       ]));
   }
 
