@@ -177,7 +177,7 @@ function combinedEdgeOptionsFrom(settings) {
 }
 
 const PROFILE_DEFAULTS = {
-  mf: { set: "Silver MF Profile Set 2mm", male: 5.25, female: 5.00, qL: 2, qW: 2, margin: "" },
+  mf: { set: "Silver MF Profile Set 2mm", male: 5.25, female: 5.00, qL: 4, qW: 4, margin: "" },
   edge: { option: "R Profile Silver 2mm", rate: 17, mode: "auto", qL: 4, qW: 4, qH: 4, qH1: 4, lengthFt: 0, margin: "" },
   // Kept only so older saved quotations still open without breaking. New quotations use edge.
   r:  { option: "R Profile Silver 2mm", rate: 17, qL: 2, qW: 2, qH: 4, qH1: 4, margin: "" },
