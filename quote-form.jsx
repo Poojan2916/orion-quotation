@@ -522,9 +522,15 @@ function AccessoriesSection({ quote, patch, calc }) {
       (n.includes("foot") && !n.includes("footprint")) ||
       (n.includes("leg") && !n.includes("angle"))
     )                                                                   return "Feet, Wheels & Support";
+    if (
+      n.includes("rivet") || n.includes("adhesive") || n.includes("glue") ||
+      n.includes("velcro") || n.includes("tape") || n.includes("screw") ||
+      n.includes("bolt") || n.includes("nut") || n.includes("washer") ||
+      n.includes("grommet") || n.includes("misc")
+    )                                                                   return "Rivets & Miscellaneous";
     return "Extra / Other Hardware";
   };
-  const groupOrder = ["Corners", "Locks", "Hinges", "Feet, Wheels & Support", "Extra / Other Hardware"];
+  const groupOrder = ["Corners", "Locks", "Hinges", "Feet, Wheels & Support", "Rivets & Miscellaneous", "Extra / Other Hardware"];
   const grouped = groupOrder
     .map(label => ({ label, rows: calc.rows.filter(r => groupOf(r.name) === label) }))
     .filter(g => g.rows.length);
@@ -563,7 +569,7 @@ function AccessoriesSection({ quote, patch, calc }) {
   return (
     <div className="card section-card">
       <div className="section-head"><span className="num">6</span><h3>Accessories &amp; Hardware</h3>
-        <span className="hint">corners · locks · hinges · feet &amp; wheels · extra hardware</span>
+        <span className="hint">corners · locks · hinges · feet &amp; wheels · rivets &amp; misc · extra hardware</span>
       </div>
       <div className="table-wrap">
         <table className="tbl">
@@ -867,8 +873,27 @@ function AddonsSection({ quote, patch, calc }) {
 function OrderSection({ quote, patch, calc }) {
   const sh = calc.shipping;
   const shipLabel = SHIPPING_TYPES.find(s => s.key === sh.type).label;
-  const finalMarginPercent = Math.max(20, Math.min(80, toNumber(quote.finalMarginPercent == null ? 20 : quote.finalMarginPercent, 20)));
-  const setMargin = v => patch({ finalMarginPercent: Math.max(20, Math.min(80, toNumber(v, 20))) });
+
+  // Margin: store raw typed value, only clamp in display/calc (calc.js already clamps 20-80).
+  // This lets the user type "30" without it snapping to 20 after "3".
+  const [marginDraft, setMarginDraft] = useState(String(quote.finalMarginPercent == null ? 20 : quote.finalMarginPercent));
+  const commitMargin = (v) => {
+    const n = Math.max(20, Math.min(80, toNumber(v, 20)));
+    setMarginDraft(String(n));
+    patch({ finalMarginPercent: n });
+  };
+  const onMarginType = (v) => {
+    setMarginDraft(v);
+    // Only patch to quote if it's a valid number (don't clamp mid-type)
+    const n = Number(v);
+    if (v !== "" && Number.isFinite(n)) {
+      patch({ finalMarginPercent: n });
+    }
+  };
+  // Sync draft when slider is used or quote changes externally
+  useEffect(() => {
+    setMarginDraft(String(quote.finalMarginPercent == null ? 20 : quote.finalMarginPercent));
+  }, [quote.finalMarginPercent]);
 
   return (
     <div className="card section-card">
@@ -878,7 +903,7 @@ function OrderSection({ quote, patch, calc }) {
           <Field label="Quantity (boxes)">
             <NumInput value={quote.quantity} unit="nos" onChange={v => patch({ quantity: v })} />
           </Field>
-          <Field label="Packaging Cost">
+          <Field label="Shipping Type">
             <div className="segmented" style={{ display: "flex" }}>
               {SHIPPING_TYPES.map(s => (
                 <button key={s.key} className={quote.shipping === s.key ? "active" : ""} style={{ flex: 1 }} onClick={() => patch({ shipping: s.key })}>{s.label}</button>
@@ -887,10 +912,29 @@ function OrderSection({ quote, patch, calc }) {
           </Field>
         </div>
 
-        <div className="order-recap">
+        {/* Packaging cost (auto from formula — always shown as reference) */}
+        <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--surface-2, #f7f8fb)", borderRadius: 8 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 13, color: "var(--ink-3)" }}>Packaging cost <span className="note">(auto — volumetric estimate)</span></span>
+            <span className="mono" style={{ fontWeight: 600 }}>₹{inr(sh.packaging, 2)}</span>
+          </div>
+          <p className="note" style={{ marginTop: 4, marginBottom: 0 }}>Formula: ((((L+130)+(W+130)+100) × ((W+130)+(H+H1+130)+30) / 1,000,000) × 1.08) × 140</p>
+        </div>
+
+        {/* Manual shipping cost input (shown when Local or International) */}
+        {sh.type !== "none" && (
+          <div style={{ marginTop: 10 }}>
+            <Field label={"Shipping cost (" + shipLabel + ") — enter amount"}>
+              <NumInput value={quote.shippingCost} unit="₹" placeholder="Enter shipping cost" onChange={v => patch({ shippingCost: v })} />
+            </Field>
+            <p className="note" style={{ marginTop: 4 }}>Enter the actual shipping/courier cost. This varies by courier and destination — no formula applied.</p>
+          </div>
+        )}
+
+        <div className="order-recap" style={{ marginTop: 14 }}>
           <div className="order-line"><span>Subtotal / box</span><b className="mono">₹{inr(calc.subtotalPerBox)}</b></div>
           <div className="order-line"><span>× {calc.quantity} box{calc.quantity === 1 ? "" : "es"}</span><b className="mono">₹{inr(calc.boxesTotal)}</b></div>
-          <div className="order-line"><span>Packaging Cost ({shipLabel})</span><b className="mono">₹{inr(sh.value)}</b></div>
+          {sh.type !== "none" && <div className="order-line"><span>Shipping ({shipLabel})</span><b className="mono">₹{inr(sh.value)}</b></div>}
           <div className="order-line"><span>Base before final margin</span><b className="mono">₹{inr(calc.beforeFinalMargin)}</b></div>
         </div>
 
@@ -904,16 +948,28 @@ function OrderSection({ quote, patch, calc }) {
             min="20"
             max="80"
             step="1"
-            value={finalMarginPercent}
-            onChange={e => setMargin(e.target.value)}
+            value={calc.finalMarginPercent}
+            onChange={e => { setMarginDraft(e.target.value); patch({ finalMarginPercent: Number(e.target.value) }); }}
             style={{ width: "100%", accentColor: "var(--red)", height: 22, cursor: "pointer" }}
           />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, color: "var(--ink-4)", fontSize: 11 }}>
             <span>20%</span><span>30%</span><span>40%</span><span>50%</span><span>60%</span><span>70%</span><span>80%</span>
           </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-            <NumInput value={finalMarginPercent} unit="%" onChange={setMargin} />
-            <span className="note" style={{ alignSelf: "center" }}>Type or drag — range 20% to 80%.</span>
+          <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <div className="unit-row">
+              <input
+                type="number"
+                className="num-input has-unit"
+                value={marginDraft}
+                min="20"
+                max="80"
+                onChange={e => onMarginType(e.target.value)}
+                onBlur={e => commitMargin(e.target.value)}
+                onFocus={e => e.target.select()}
+              />
+              <span className="unit">%</span>
+            </div>
+            <span className="note">Type or drag — range 20% to 80%. Clamped on blur.</span>
           </div>
 
           <div className="order-recap" style={{ marginTop: 12 }}>
@@ -921,12 +977,6 @@ function OrderSection({ quote, patch, calc }) {
             <div className="order-line tot"><span>Total before GST</span><b className="mono">₹{inr(calc.totalBeforeGst)}</b></div>
           </div>
         </div>
-
-        {sh.type !== "none" && (
-          <p className="note" style={{ marginTop: 10 }}>
-            Packaging formula: (((L+130)+(W+130)+100)×((W+130)+(H+H1+130)+30)/1,000,000)×1.08 = {sh.packaging.toFixed(2)}{sh.type === "intl" ? "  × 500 = ₹" + inr(sh.intl, 0) : " → ₹" + inr(sh.local, 0)}
-          </p>
-        )}
       </div>
     </div>
   );

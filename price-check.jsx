@@ -281,6 +281,139 @@ function PriceCheck({ quotes, onOpen }) {
           </table>
         </div>
       </div>
+
+      {/* Inventory & Material Usage — what's going out across saved quotes */}
+      <div className="card" style={{ marginTop: 18, padding: 18 }}>
+        <h3 style={{ marginTop: 0, marginBottom: 6 }}>Inventory &amp; Material Usage</h3>
+        <p className="note" style={{ marginBottom: 14 }}>Aggregated material consumption across all {totalQuotes} saved quotation{totalQuotes === 1 ? "" : "s"}. Shows what's going out.</p>
+
+        {(() => {
+          // Aggregate material usage across all quotes
+          const panelUsage = {};   // material → { sheets, sqft, qty }
+          const foamUsage = {};    // type → { sheets, volume_mm3, qty }
+          const accUsage = {};     // name → { qty, unit }
+          const profileUsage = { mfFt: 0, edgeFt: 0 };
+
+          enriched.forEach(e => {
+            const q = quotes.find(qq => qq.id === e.id);
+            if (!q) return;
+            const c = calcQuote(q);
+            const qty = c.quantity;
+
+            // Panels
+            const mat = c.acp && c.acp.main ? c.acp.main.material : "Unknown";
+            if (!panelUsage[mat]) panelUsage[mat] = { sheets: 0, sqft: 0, pieces: 0 };
+            (c.acp.main.rows || []).forEach(r => {
+              panelUsage[mat].pieces += (r.qty || 0) * qty;
+              panelUsage[mat].sheets += r.qty ? Math.ceil(r.qty / (r.pps || 1)) * qty : 0;
+            });
+
+            // Foam
+            (c.foam.layers || []).forEach(l => {
+              if (!foamUsage[l.type]) foamUsage[l.type] = { sheets: 0, pieces: 0 };
+              (l.rows || []).forEach(r => {
+                foamUsage[l.type].pieces += (r.qty || 0) * qty;
+                foamUsage[l.type].sheets += r.qty ? Math.ceil(r.qty / (r.pps || 1)) * qty : 0;
+              });
+            });
+
+            // Accessories
+            (q.accessories || []).forEach(a => {
+              const key = a.name || "Unknown";
+              if (!accUsage[key]) accUsage[key] = { qty: 0, unit: a.unit || "pc" };
+              accUsage[key].qty += (toNumber(a.qty, 0)) * qty;
+            });
+
+            // Profiles
+            if (c.profiles && c.profiles.mf) profileUsage.mfFt += toNumber(c.profiles.mf.ft, 0) * qty;
+            if (c.profiles && c.profiles.edge) profileUsage.edgeFt += toNumber(c.profiles.edge.ft, 0) * qty;
+          });
+
+          const panelRows = Object.entries(panelUsage).map(([mat, d]) => ({ mat, ...d })).sort((a, b) => b.pieces - a.pieces);
+          const foamRows = Object.entries(foamUsage).map(([type, d]) => ({ type, ...d })).sort((a, b) => b.pieces - a.pieces);
+          const accRows = Object.entries(accUsage).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.qty - a.qty);
+
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Panel usage */}
+              <div>
+                <h4 style={{ margin: "0 0 8px", color: "var(--navy)" }}>Panel Materials</h4>
+                <div className="table-wrap">
+                  <table className="tbl">
+                    <thead><tr><th>Material</th><th className="num">Total pieces</th><th className="num">Est. sheets</th></tr></thead>
+                    <tbody>
+                      {panelRows.length === 0 ? <tr><td colSpan="3" style={{ color: "var(--ink-4)", textAlign: "center" }}>No panel data</td></tr> :
+                        panelRows.map(r => (
+                          <tr key={r.mat}>
+                            <td>{r.mat}</td>
+                            <td className="num mono">{r.pieces.toLocaleString("en-IN")}</td>
+                            <td className="num mono">{r.sheets.toLocaleString("en-IN")}</td>
+                          </tr>
+                        ))
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Foam usage */}
+              <div>
+                <h4 style={{ margin: "0 0 8px", color: "var(--red)" }}>Foam Types</h4>
+                <div className="table-wrap">
+                  <table className="tbl">
+                    <thead><tr><th>Foam</th><th className="num">Total pieces</th><th className="num">Est. sheets</th></tr></thead>
+                    <tbody>
+                      {foamRows.length === 0 ? <tr><td colSpan="3" style={{ color: "var(--ink-4)", textAlign: "center" }}>No foam data</td></tr> :
+                        foamRows.map(r => (
+                          <tr key={r.type}>
+                            <td>{r.type}</td>
+                            <td className="num mono">{r.pieces.toLocaleString("en-IN")}</td>
+                            <td className="num mono">{r.sheets.toLocaleString("en-IN")}</td>
+                          </tr>
+                        ))
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Profile usage */}
+              {(profileUsage.mfFt > 0 || profileUsage.edgeFt > 0) && (
+                <div>
+                  <h4 style={{ margin: "0 0 8px", color: "#7a5cc0" }}>Profiles</h4>
+                  <div style={{ display: "flex", gap: 24 }}>
+                    <div><span className="note">MF Profile total</span><div className="mono" style={{ fontSize: 18, fontWeight: 600 }}>{profileUsage.mfFt.toLocaleString("en-IN")} ft</div></div>
+                    <div><span className="note">Edge Profile total</span><div className="mono" style={{ fontSize: 18, fontWeight: 600 }}>{profileUsage.edgeFt.toLocaleString("en-IN")} ft</div></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Accessory usage */}
+              <div>
+                <h4 style={{ margin: "0 0 8px", color: "#1f8a52" }}>Accessories &amp; Hardware</h4>
+                <div className="table-wrap">
+                  <table className="tbl">
+                    <thead><tr><th>Item</th><th className="num">Total qty</th><th>Unit</th></tr></thead>
+                    <tbody>
+                      {accRows.length === 0 ? <tr><td colSpan="3" style={{ color: "var(--ink-4)", textAlign: "center" }}>No accessory data</td></tr> :
+                        accRows.map(r => (
+                          <tr key={r.name}>
+                            <td>{r.name}</td>
+                            <td className="num mono">{r.qty.toLocaleString("en-IN")}</td>
+                            <td>{r.unit}</td>
+                          </tr>
+                        ))
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        <p className="note" style={{ marginTop: 12 }}>Totals are summed across all saved quotes × their quantities. Use this to track material going out and plan procurement.</p>
+      </div>
     </div>
   );
 }

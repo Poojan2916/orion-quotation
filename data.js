@@ -503,6 +503,7 @@ function normalizeQuote(q) {
   out.profileExtras = Array.isArray(q.profileExtras) ? q.profileExtras.map(x => ({ unit: "mm", ...x })) : (migratedProfileExtras.length ? migratedProfileExtras : base.profileExtras);
   if (out.quantity == null) out.quantity = 1;
   if (!out.shipping) out.shipping = "none";
+  if (out.shippingCost == null) out.shippingCost = "";
   if (out.finalMarginPercent == null) out.finalMarginPercent = 20;
   out.customerDisplay = {
     showFoamLayers: false,
@@ -591,6 +592,7 @@ function makeBlankQuote(seq) {
     labour: { cost: 1500, margin: "" },
     quantity: 1,
     shipping: "none",
+    shippingCost: "",
     finalMarginPercent: 20,
     validityDays: toNumberSafe(SETTINGS.validityDays, 15),
     paymentTerms: SETTINGS.paymentTerms || DEFAULT_PAYMENT_TERMS,

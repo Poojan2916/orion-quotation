@@ -285,13 +285,13 @@ function calcLabour(quote) {
 // Local uses this packaging value; International keeps the previous multiplier for now.
 function calcShipping(quote) {
   const d = quote.caseDims;
+  // Packaging cost formula (always calculated for reference/display)
   const packaging = ((((num(d.length) + 130) + (num(d.width) + 130) + 100) *
                       ((num(d.width) + 130) + (num(d.height) + num(d.lidHeight) + 130) + 30) / 1000000) * 1.08) * 140;
   const type = quote.shipping || "none";
-  let value = 0;
-  if (type === "local") value = packaging;
-  else if (type === "intl") value = packaging * 500;
-  return { type, local: packaging, packaging, intl: packaging * 500, value };
+  // Shipping cost is now user-entered (no formula for local/intl — varies by courier).
+  const value = type !== "none" ? num(quote.shippingCost) : 0;
+  return { type, packaging, value };
 }
 
 // ---- Full quotation ----
