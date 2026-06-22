@@ -177,6 +177,7 @@ function App({ currentUser, onLogout }) {
 
   const openSettings = () => { setView("settings"); setDraft(null); };
   const showInternal = (id) => { if (draft && draft.id === id) commitDraft(draft); setActiveId(id); setView("internal"); };
+  const showBom = (id) => { if (draft && draft.id === id) commitDraft(draft); setActiveId(id); setView("bom"); };
 
   const openQuote = (id) => {
     const q = quotes.find(x => x.id === id);
@@ -238,7 +239,7 @@ function App({ currentUser, onLogout }) {
   };
 
   // For preview/internal accessed from dashboard (not from a live draft)
-  const previewSource = (draft && (view === "preview" || view === "internal")) ? draft : activeQuote;
+  const previewSource = (draft && (view === "preview" || view === "internal" || view === "bom")) ? draft : activeQuote;
 
   return (
     <div className="app">
@@ -251,8 +252,8 @@ function App({ currentUser, onLogout }) {
         <nav className="topnav">
           <button className={view === "dashboard" ? "active" : ""} onClick={goDashboard}>Dashboard</button>
           <button className={view === "priceCheck" ? "active" : ""} onClick={() => { setDraft(null); setView("priceCheck"); }}>Price Check</button>
-          <button className={(view === "form" || view === "preview" || view === "internal") ? "active" : ""} onClick={() => { if (view === "dashboard" || view === "priceCheck") newQuote(); }}>
-            {view === "preview" ? "Customer Quote" : view === "internal" ? "Internal Costing" : "New Quotation"}
+          <button className={(view === "form" || view === "preview" || view === "internal" || view === "bom") ? "active" : ""} onClick={() => { if (view === "dashboard" || view === "priceCheck") newQuote(); }}>
+            {view === "preview" ? "Customer Quote" : view === "internal" ? "Internal Costing" : view === "bom" ? "Work Order / BOM" : "New Quotation"}
           </button>
           <button className={view === "settings" ? "active" : ""} onClick={openSettings}>Settings</button>
         </nav>
@@ -304,6 +305,7 @@ function App({ currentUser, onLogout }) {
             onBack={goDashboard}
             onEdit={() => openQuote(previewSource.id)}
             onInternal={() => { setActiveId(previewSource.id); setView("internal"); }}
+            onBom={() => { setActiveId(previewSource.id); setView("bom"); }}
             onDeliver={() => openDelivery(previewSource.id)}
           />
         )}
@@ -322,6 +324,17 @@ function App({ currentUser, onLogout }) {
             onBack={goDashboard}
             onEdit={() => openQuote(previewSource.id)}
             onCustomer={() => { setActiveId(previewSource.id); setView("preview"); }}
+            onBom={() => { setActiveId(previewSource.id); setView("bom"); }}
+          />
+        )}
+
+        {view === "bom" && previewSource && (
+          <BomSheet
+            quote={previewSource}
+            onBack={goDashboard}
+            onEdit={() => openQuote(previewSource.id)}
+            onCustomer={() => { setActiveId(previewSource.id); setView("preview"); }}
+            onInternal={() => { setActiveId(previewSource.id); setView("internal"); }}
           />
         )}
 
