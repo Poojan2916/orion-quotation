@@ -3,7 +3,7 @@
    Shows every base rate, margin, sheet calc and per-piece cost.
    ============================================================ */
 
-function InternalCosting({ quote, onBack, onEdit, onCustomer }) {
+function InternalCosting({ quote, onBack, onEdit, onCustomer, onBom }) {
   const c = useMemo(() => calcQuote(quote), [quote]);
   const fmtDate = (d) => new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 
@@ -20,6 +20,7 @@ function InternalCosting({ quote, onBack, onEdit, onCustomer }) {
         <div className="view-toggle">
           <button onClick={onCustomer}>Customer</button>
           <button className="active">Internal</button>
+          <button onClick={onBom}>BOM</button>
         </div>
         <span className="tag-chip" style={{ background: "#fbe9ea", color: "var(--red-700)" }}>Internal — confidential</span>
         <button className="btn btn-primary" onClick={() => window.print()}><Icon name="print" /> Internal PDF</button>
