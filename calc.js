@@ -99,7 +99,7 @@ function foamSheetCost(cfg) {
 function calcFoamLayer(layer, d) {
   const sw = num(layer.sheetW) || 1000;
   const sl = num(layer.sheetL) || 2000;
-  const cut = layer.cutMargin == null ? 15 : num(layer.cutMargin);
+  const cut = layer.cutMargin == null ? 20 : num(layer.cutMargin);
   const sheetCost = foamSheetCost(layer);
   const rows = (layer.panels || []).map(p => {
     const cat = PANEL_CATEGORIES.find(c => c.key === p.key) || {};
