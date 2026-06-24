@@ -125,7 +125,6 @@ function Preview({ quote, onBack, onEdit, onInternal, onDeliver, onBom }) {
                 <tbody>
                   {c.quantity > 1 && <tr><td className="k">Rate / box</td><td className="v">&#x20B9; {inr(sellPerBox)}</td></tr>}
                   {c.quantity > 1 && <tr><td className="k">&times; {c.quantity} boxes</td><td className="v">&#x20B9; {inr(sellPerBox * c.quantity)}</td></tr>}
-                  {c.shippingValue > 0 && <tr><td className="k">Shipping ({SHIPPING_TYPES.find(s => s.key === c.shipping.type).label})</td><td className="v">&#x20B9; {inr(c.shippingValue)}</td></tr>}
                   <tr><td className="k">Total before GST</td><td className="v">&#x20B9; {inr(c.totalBeforeGst)}</td></tr>
                   <tr><td className="k">GST @ {SETTINGS.gstPercent}%</td><td className="v">&#x20B9; {inr(c.gst)}</td></tr>
                   <tr className="grand"><td className="k">Grand Total</td><td className="v">&#x20B9; {inr(c.grand)}</td></tr>
