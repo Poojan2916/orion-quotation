@@ -240,6 +240,7 @@ function AcpSection({ quote, patchAcp, patch, calc, customCalc }) {
           <span className="subtotal-pill">Final rate <b>₹{calc.finalRate.toFixed(0)}/sqft</b></span>
           <span className="subtotal-pill">Sheet cost <b>₹{inr(calc.sheetCost, 0)}</b></span>
           <span className="subtotal-pill">{calc.sheetSqft} sqft × ₹{calc.finalRate.toFixed(0)}</span>
+          <span className="subtotal-pill" style={{ background: "var(--blue-tint,#e8f0ff)", color: "var(--navy)" }}>Used <b>{((calc.rows||[]).reduce((s,r)=>s+r.cutA*r.cutB*r.qty,0)/SQMM_PER_SQFT).toFixed(2)} sqft</b></span>
           <div style={{ flex: 1 }} />
           <span className="subtotal-pill" style={{ background: "var(--navy)", color: "#fff" }}>{acp.material} Cost <b style={{ color: "#fff" }}>₹{inr(calc.main.cost, 0)}</b></span>
         </div>
@@ -534,9 +535,11 @@ function AccessoriesSection({ quote, patch, calc }) {
       n.includes("bolt") || n.includes("nut") || n.includes("washer") ||
       n.includes("grommet") || n.includes("misc")
     )                                                                   return "Rivets & Miscellaneous";
+    if (n.includes("handle") || n.includes("d hook") || n.includes("briefcase"))
+                                                                        return "Handles";
     return "Extra / Other Hardware";
   };
-  const groupOrder = ["Corners", "Locks", "Hinges", "Feet, Wheels & Support", "Rivets & Miscellaneous", "Extra / Other Hardware"];
+  const groupOrder = ["Corners", "Locks", "Hinges", "Handles", "Feet, Wheels & Support", "Rivets & Miscellaneous", "Extra / Other Hardware"];
   const grouped = groupOrder
     .map(label => ({ label, rows: calc.rows.filter(r => groupOf(r.name) === label) }))
     .filter(g => g.rows.length);
@@ -922,7 +925,13 @@ function OrderSection({ quote, patch, calc }) {
         <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--surface-2, #f7f8fb)", borderRadius: 8 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
             <span style={{ fontSize: 13, color: "var(--ink-3)" }}>Packaging cost <span className="note">(auto — volumetric estimate)</span></span>
-            <span className="mono" style={{ fontWeight: 600 }}>₹{inr(sh.packaging, 2)}</span>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <span className="mono" style={{ fontWeight: 600 }}>₹{inr(sh.packaging, 2)}</span>
+              <button className="btn btn-sm" style={{ fontSize:12, padding:"3px 10px", lineHeight:1.4 }}
+                onClick={() => patch({ shipping: sh.type === "none" ? "local" : sh.type, shippingCost: Math.round(sh.packaging) })}>
+                Apply →
+              </button>
+            </div>
           </div>
           <p className="note" style={{ marginTop: 4, marginBottom: 0 }}>Formula: ((((L+130)+(W+130)+100) × ((W+130)+(H+H1+130)+30) / 1,000,000) × 1.08) × 140</p>
         </div>
