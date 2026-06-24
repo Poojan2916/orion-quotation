@@ -224,7 +224,15 @@ function App({ currentUser, onLogout }) {
 
   const deleteQuote = (id) => {
     if (!window.confirm("Delete this quotation? This cannot be undone.")) return;
-    setQuotes(prev => prev.filter(q => q.id !== id));
+    const filtered = quotes.filter(q => q.id !== id);
+    // Skip the 10-second debounce — destructive actions must save to cloud immediately.
+    skipNextCloudSaveRef.current = true;
+    setQuotes(filtered);
+    saveQuotes(filtered);
+    setSyncState("saving");
+    saveQuotesToCloud(filtered)
+      .then(data => { setLastCloudSave(data.savedAt || new Date().toISOString()); setSyncState("saved"); })
+      .catch(() => setSyncState("offline"));
   };
 
   const duplicateQuote = (id) => {
