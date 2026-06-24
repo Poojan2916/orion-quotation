@@ -516,30 +516,29 @@ function AccessoriesSection({ quote, patch, calc }) {
     patch({ accessories: quote.accessories.map(a => a.id === id ? { ...a, name, basePrice: preset ? preset.basePrice : a.basePrice, unit: preset ? preset.unit : a.unit, weightKg: preset ? (preset.weightKg || "") : a.weightKg } : a) });
   };
 
+  // Use the explicit category stored on the SETTINGS preset (set in Section H of Settings).
+  // Falls back to name-keyword matching for custom items that have no category set.
   const groupOf = (name) => {
+    const preset = SETTINGS.accessories.find(p => p.name === name);
+    const cat = preset && preset.category && preset.category.trim();
+    if (cat) return cat;
     const n = String(name || "").toLowerCase();
-    if (n.includes("corner"))                                          return "Corners";
-    if (n.includes("lock"))                                            return "Locks";
-    if (n.includes("hinge"))                                           return "Hinges";
-    if (
-      n.includes("wheel") || n.includes("trolley") || n.includes("castor") ||
-      n.includes("rubber bush") || n.includes("rubber foot") ||
-      n.includes("support leg") || n.includes("foot leg") ||
-      n === "rubber foot" || n === "rubber bush" ||
-      (n.includes("foot") && !n.includes("footprint")) ||
-      (n.includes("leg") && !n.includes("angle"))
-    )                                                                   return "Feet, Wheels & Support";
-    if (
-      n.includes("rivet") || n.includes("adhesive") || n.includes("glue") ||
-      n.includes("velcro") || n.includes("tape") || n.includes("screw") ||
-      n.includes("bolt") || n.includes("nut") || n.includes("washer") ||
-      n.includes("grommet") || n.includes("misc")
-    )                                                                   return "Rivets & Miscellaneous";
-    if (n.includes("handle") || n.includes("d hook") || n.includes("briefcase"))
-                                                                        return "Handles";
-    return "Extra / Other Hardware";
+    if (n.includes("corner"))                                               return "Corner";
+    if (n.includes("lock"))                                                 return "Lock";
+    if (n.includes("hinge"))                                                return "Hinges";
+    if (n.includes("handle") || n.includes("d hook"))                      return "Handle";
+    if (n.includes("profile") || n.includes("tube") || n.includes("patti") || n.includes("channel")) return "Profiles";
+    if (n.includes("rivet") || n.includes("misc") || n.includes("screw") || n.includes("adhesive")) return "Rivets";
+    return "Extra";
   };
-  const groupOrder = ["Corners", "Locks", "Hinges", "Handles", "Feet, Wheels & Support", "Rivets & Miscellaneous", "Extra / Other Hardware"];
+  // Build section order dynamically from categories present in the master list.
+  // Known categories appear first in the user-defined order; any extra categories follow.
+  const _knownCatOrder = ["Corner", "Lock", "Hinges", "Handle", "Profiles", "Rivets", "Extra"];
+  const _allCats = [...new Set(SETTINGS.accessories.map(a => groupOf(a.name)))];
+  const groupOrder = [
+    ..._knownCatOrder.filter(c => _allCats.includes(c)),
+    ..._allCats.filter(c => !_knownCatOrder.includes(c)),
+  ];
   const grouped = groupOrder
     .map(label => ({ label, rows: calc.rows.filter(r => groupOf(r.name) === label) }))
     .filter(g => g.rows.length);
@@ -578,7 +577,7 @@ function AccessoriesSection({ quote, patch, calc }) {
   return (
     <div className="card section-card">
       <div className="section-head"><span className="num">6</span><h3>Accessories &amp; Hardware</h3>
-        <span className="hint">corners · locks · hinges · feet &amp; wheels · rivets &amp; misc · extra hardware</span>
+        <span className="hint">grouped by category set in Settings → Section H</span>
       </div>
       <div className="table-wrap">
         <table className="tbl">
