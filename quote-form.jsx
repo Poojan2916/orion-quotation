@@ -225,6 +225,7 @@ function AcpSection({ quote, patchAcp, patch, calc, customCalc }) {
           <Field label="Margin" opt="optional"><NumInput value={acp.margin} unit="₹/sqft" placeholder="0" onChange={v => patchAcp("margin", v)} /></Field>
           <Field label="Overlay Rate" opt="optional"><NumInput value={acp.overlay} unit="₹/sqft" placeholder="0" onChange={v => patchAcp("overlay", v)} /></Field>
           <Field label="Cutting Margin"><NumInput value={acp.cutMargin} unit="mm" onChange={v => patchAcp("cutMargin", v)} /></Field>
+          <Field label="Min. Sqft" opt="optional"><NumInput value={acp.minSqft} unit="sqft" placeholder="0" onChange={v => patchAcp("minSqft", v)} /></Field>
         </div>
 
         {acp.material === "MDF" && (
@@ -240,7 +241,10 @@ function AcpSection({ quote, patchAcp, patch, calc, customCalc }) {
           <span className="subtotal-pill">Final rate <b>₹{calc.finalRate.toFixed(0)}/sqft</b></span>
           <span className="subtotal-pill">Sheet cost <b>₹{inr(calc.sheetCost, 0)}</b></span>
           <span className="subtotal-pill">{calc.sheetSqft} sqft × ₹{calc.finalRate.toFixed(0)}</span>
-          <span className="subtotal-pill" style={{ background: "var(--blue-tint,#e8f0ff)", color: "var(--navy)" }}>Used <b>{((calc.rows||[]).reduce((s,r)=>s+r.cutA*r.cutB*r.qty,0)/SQMM_PER_SQFT).toFixed(2)} sqft</b></span>
+          {calc.minSqftTopup > 0
+            ? <span className="subtotal-pill" style={{ background: "var(--amber,#fff3cd)", color: "#7a5800" }}>Used <b>{calc.actualUsedSqft.toFixed(2)} sqft</b> → Billing <b>{calc.billedSqft.toFixed(2)} sqft</b></span>
+            : <span className="subtotal-pill" style={{ background: "var(--blue-tint,#e8f0ff)", color: "var(--navy)" }}>Used <b>{((calc.rows||[]).reduce((s,r)=>s+r.cutA*r.cutB*r.qty,0)/SQMM_PER_SQFT).toFixed(2)} sqft</b></span>
+          }
           <div style={{ flex: 1 }} />
           <span className="subtotal-pill" style={{ background: "var(--navy)", color: "#fff" }}>{acp.material} Cost <b style={{ color: "#fff" }}>₹{inr(calc.main.cost, 0)}</b></span>
         </div>
