@@ -1051,3 +1051,186 @@ input[type="range"] {
   .bom-cat-row td { background: #f5f7fa !important; }
   .bom-signoff { margin-top: 40px; }
 }
+
+
+/* ============================================================
+   Mobile & Responsive — phones ≤640px, small phones ≤480px
+   Tablet breakpoints at 820px for fixed-width documents.
+   ============================================================ */
+
+/* ── Document scaling (preview / internal / BOM) ────────────── */
+@media (max-width: 820px) {
+  .doc { width: 100%; min-width: 0; }
+  .doc-inner { padding: 24px 20px; }
+  .doc-head { flex-direction: column; gap: 16px; }
+  .doc-head .qtitle { text-align: left; }
+  .doc-head .qtitle h2 { font-size: 22px; }
+  .internal-doc { width: 100%; min-width: 0; }
+  .spec-grid { grid-template-columns: repeat(2, 1fr); }
+  .doc-parties { grid-template-columns: 1fr; gap: 16px; }
+}
+
+/* ── Topbar: scrollable nav on mobile ───────────────────────── */
+@media (max-width: 640px) {
+  .topbar {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 0 12px;
+    row-gap: 0;
+  }
+  .topbar .brand { height: 50px; flex: 1; }
+  .topbar .brand .app-name span { display: none; }
+  .topbar .meta { display: none; }
+  .topbar .spacer { display: none; }
+
+  .topnav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    display: flex;
+    padding: 3px 0 7px;
+    border-top: 1px solid var(--border);
+    gap: 2px;
+  }
+  .topnav::-webkit-scrollbar { display: none; }
+  .topnav button { flex-shrink: 0; padding: 6px 12px; font-size: 13px; }
+  .topnav button::after { left: 12px; right: 12px; }
+}
+
+/* ── Container & page head ──────────────────────────────────── */
+@media (max-width: 640px) {
+  .container { padding: 14px 12px 56px; }
+  .page-head { flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 16px; }
+  .page-head h1 { font-size: 20px; }
+  .formfoot { flex-wrap: wrap; gap: 8px; }
+}
+
+/* ── Grids ──────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+}
+
+/* ── Section cards ──────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .section-head { padding: 11px 14px; flex-wrap: wrap; gap: 6px; }
+  .section-head .hint { display: none; }
+  .section-body { padding: 14px 14px; }
+  .row-add { padding: 8px 14px 12px; }
+}
+
+/* ── Stat grid ──────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .stat-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+  .stat { padding: 14px 14px; }
+  .stat .value { font-size: 20px; }
+}
+
+/* ── Toolbar / search ───────────────────────────────────────── */
+@media (max-width: 640px) {
+  .toolbar { flex-wrap: wrap; gap: 8px; }
+  .search { max-width: none; flex: 1 1 100%; }
+}
+
+/* ── Quote list table → card layout on mobile ───────────────── */
+@media (max-width: 640px) {
+  .quotes-tbl, .quotes-tbl tbody { display: block; width: 100%; }
+  .quotes-tbl thead { display: none; }
+  .quotes-tbl .quote-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    gap: 2px 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    animation: none !important;
+    cursor: pointer;
+  }
+  .quotes-tbl .quote-row td { display: block; padding: 0; border: none; }
+  /* col 1 row 1: quote no */
+  .quotes-tbl .quote-row td:nth-child(1) { grid-column: 1; grid-row: 1; }
+  /* col 1 row 2: customer */
+  .quotes-tbl .quote-row td:nth-child(2) { grid-column: 1; grid-row: 2; }
+  /* col 2 row 1: status badge */
+  .quotes-tbl .quote-row td:nth-child(4) { grid-column: 2; grid-row: 1; text-align: right; }
+  /* col 2 row 2: total */
+  .quotes-tbl .quote-row td:nth-child(5) { grid-column: 2; grid-row: 2; text-align: right; }
+  /* date — hide on mobile */
+  .quotes-tbl .quote-row td:nth-child(3) { display: none; }
+  /* actions — full row, always visible */
+  .quotes-tbl .quote-row td:nth-child(6) { grid-column: 1 / -1; grid-row: 3; padding-top: 6px; }
+  .quotes-tbl .row-actions { opacity: 1 !important; justify-content: flex-start; flex-wrap: wrap; }
+  .quotes-tbl .row-actions .btn { padding: 6px 10px; font-size: 12px; }
+}
+
+/* ── Touch targets (44px min, 16px font stops iOS zoom) ─────── */
+@media (max-width: 640px) {
+  input[type="text"], input[type="number"], input[type="email"],
+  input[type="tel"], select, textarea {
+    min-height: 44px;
+    font-size: 16px !important;
+  }
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 38px; }
+  .segmented button { min-height: 38px; }
+}
+
+/* ── Foam cards ─────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .foam-card-top { grid-template-columns: 1fr 1fr 1fr !important; }
+}
+@media (max-width: 480px) {
+  .foam-card-top { grid-template-columns: 1fr 1fr !important; }
+}
+
+/* ── Profile grid ───────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .profile-grid, .profile-grid.five { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Preview bar ────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .preview-bar { flex-wrap: wrap; gap: 6px 8px; margin-bottom: 12px; }
+  .preview-bar .spacer { display: none; }
+  .preview-bar .tag-chip { order: -1; }
+  .view-toggle button { padding: 6px 10px; font-size: 12px; }
+}
+
+/* ── Addon grid ─────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .addon-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Order line ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .order-line { font-size: 12.5px; padding: 8px 12px; }
+}
+
+/* ── Tables: horizontal scroll with minimum widths ──────────── */
+@media (max-width: 640px) {
+  .table-wrap { -webkit-overflow-scrolling: touch; }
+  .tbl:not(.quotes-tbl) { min-width: 420px; }
+  .ic-tbl { min-width: 480px; }
+  .bom-tbl { min-width: 360px; }
+}
+
+/* ── BOM meta grid ──────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .bom-meta-grid { grid-template-columns: 1fr 1fr !important; }
+}
+@media (max-width: 400px) {
+  .bom-meta-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ── Simplify bg on mobile (perf + avoids grid moiré) ───────── */
+@media (max-width: 640px) {
+  html, body {
+    background-image: radial-gradient(700px 260px at 50% -80px, rgba(31,77,121,.07), transparent 70%) !important;
+    background-size: 100% 100% !important;
+    background-attachment: scroll !important;
+  }
+}
