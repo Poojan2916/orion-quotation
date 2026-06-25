@@ -81,10 +81,15 @@ function calcAcp(quote) {
       a.panels, quote.caseDims, cut
     );
   }
-  const cost = main.cost + (abs ? abs.cost : 0);
+  // minSqft: if actual used sqft < user-set minimum, bill for the minimum instead
+  const actualUsedSqft = main.rows.reduce((s, r) => s + r.cutA * r.cutB * r.qty, 0) / SQMM_PER_SQFT;
+  const minSqft = num(quote.acp.minSqft) || 0;
+  const billedSqft = minSqft > actualUsedSqft ? minSqft : actualUsedSqft;
+  const minSqftTopup = minSqft > actualUsedSqft ? Math.round((minSqft - actualUsedSqft) * main.finalRate) : 0;
+  const cost = main.cost + (abs ? abs.cost : 0) + minSqftTopup;
   const totalSheets = main.totalSheets + (abs ? abs.totalSheets : 0);
   // Spread main for backward-compatible fields; cost/totalSheets are the COMBINED totals.
-  return { ...main, cut, main, abs, cost, totalSheets };
+  return { ...main, cut, main, abs, cost, totalSheets, actualUsedSqft, billedSqft, minSqftTopup };
 }
 
 // ---- Foam: a list of layers, EACH using the same 5-category sheet-cut logic ----
