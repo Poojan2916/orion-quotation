@@ -82,7 +82,7 @@ function Dashboard({ quotes, onNew, onOpen, onPreview, onInternal, onDelete, onD
           </div>
         ) : (
           <div className="table-wrap">
-            <table className="tbl">
+            <table className="tbl quotes-tbl">
               <thead>
                 <tr>
                   <th>Quote No.</th>
