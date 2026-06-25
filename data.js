@@ -515,6 +515,7 @@ function normalizeQuote(q) {
   function toFoamLayer(src) {
     const layer = { ...makeFoamConfig((src && src.type) || "EPE foam"), ...(src || {}) };
     layer.id = (src && src.id) || uid("fl");
+    layer.cutMargin = Math.max(20, layer.cutMargin == null ? 20 : (Number(layer.cutMargin) || 20));
     if (!Array.isArray(layer.panels)) layer.panels = FOAM_CATEGORY_DEFAULTS.map(c => ({ ...c }));
     return layer;
   }
