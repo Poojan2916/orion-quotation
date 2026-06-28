@@ -511,7 +511,7 @@ function AccessoriesSection({ quote, patch, calc }) {
   const delRow = (id) => patch({ accessories: quote.accessories.filter(a => a.id !== id) });
   // Add a new row pre-seeded to a specific group's first preset.
   const addRowForGroup = (groupLabel) => {
-    const groupPresets = SETTINGS.accessories.filter(p => groupOf(p.name) === groupLabel);
+    const groupPresets = visibleAccessories.filter(p => groupOf(p.name) === groupLabel);
     const preset = groupPresets[0] || { name: "Custom item", unit: "pc", basePrice: 0, weightKg: "" };
     patch({ accessories: [...quote.accessories, { id: uid("a"), name: preset.name, unit: preset.unit || "pc", qty: 1, basePrice: preset.basePrice || 0, weightKg: preset.weightKg || "", margin: "" }] });
   };
@@ -543,13 +543,23 @@ function AccessoriesSection({ quote, patch, calc }) {
     ..._knownCatOrder.filter(c => _allCats.includes(c)),
     ..._allCats.filter(c => !_knownCatOrder.includes(c)),
   ];
+  // Thickness filter: accessories whose name contains a thickness (e.g. "4mm") are
+  // only shown when the selected panel thickness matches. Items with no thickness in name always show.
+  const acpThickness = num(quote.acp && quote.acp.thickness);
+  const accMatchesPanel = (name) => {
+    const m = String(name || "").match(/(\d+(?:\.\d+)?)\s*mm/i);
+    if (!m) return true;
+    return Math.abs(parseFloat(m[1]) - acpThickness) < 0.01;
+  };
+  const visibleAccessories = SETTINGS.accessories.filter(a => accMatchesPanel(a.name));
+
   const grouped = groupOrder
     .map(label => ({ label, rows: calc.rows.filter(r => groupOf(r.name) === label) }))
     .filter(g => g.rows.length);
 
   const renderRow = (r, groupLabel) => {
     // Filter the dropdown to only show presets that belong to this group.
-    const groupPresets = SETTINGS.accessories.filter(p => groupOf(p.name) === groupLabel);
+    const groupPresets = visibleAccessories.filter(p => groupOf(p.name) === groupLabel);
     const inGroupPreset = groupPresets.some(p => p.name === r.name);
     return (
       <tr key={r.id}>
