@@ -3,6 +3,167 @@
    Cosanta WO logic active when ACP thickness is 2 / 4 / 8 mm.
    ============================================================ */
 
+
+function CaseTechDraw({ ID_L, ID_W, ID_H, BH, TH, OD_L, OD_W, OD_H, caseType, hardware }) {
+  const maxDim = Math.max(OD_L, OD_W, OD_H, 1);
+  const S = 110 / maxDim;
+
+  const fW = OD_L * S;
+  const fH = OD_H * S;
+  const sW = OD_W * S;
+  const tH = OD_W * S;
+
+  const gap  = 30;
+  const marg = 38;
+
+  // View origins
+  const fX = marg, fY = marg;
+  const sX = fX + fW + gap, sY = fY;
+  const tX = fX, tY = fY + fH + gap;
+
+  const svgW = sX + sW + marg;
+  const svgH = tY + tH + marg + 18;
+
+  // Lid/body split in Y: lid is on top
+  const splitY = fY + TH * S;
+  const bodyMidY = (splitY + fY + fH) / 2;
+
+  const hw = n => (hardware || []).some(a => (a || "").toLowerCase().includes(n));
+  const hasLock   = hw("lock");
+  const hasHinge  = hw("hinge");
+  const hasHandle = hw("handle");
+
+  // Extension + dim line helper (horizontal or vertical)
+  const ExtDim = ({ x1, y1, x2, y2, extLen, label, side }) => {
+    const isHoriz = Math.abs(y2 - y1) < 1;
+    const ext = extLen || 16;
+    // Extension lines
+    let ax1, ay1, ax2, ay2, bx1, by1, bx2, by2, lx, ly, rot;
+    if (isHoriz) {
+      const ey = y1 + (side === "below" ? ext : -ext);
+      ax1 = x1; ay1 = y1; ax2 = x1; ay2 = ey;
+      bx1 = x2; by1 = y2; bx2 = x2; by2 = ey;
+      lx = (x1 + x2) / 2; ly = ey - 3; rot = null;
+    } else {
+      const ex = x1 + (side === "right" ? ext : -ext);
+      ax1 = x1; ay1 = y1; ax2 = ex; ay2 = y1;
+      bx1 = x2; by1 = y2; bx2 = ex; by2 = y2;
+      lx = ex + (side === "right" ? 4 : -4);
+      ly = (y1 + y2) / 2;
+      rot = -90;
+    }
+    const dimX1 = isHoriz ? ax1 : ax2;
+    const dimY1 = isHoriz ? ay2 : ay1;
+    const dimX2 = isHoriz ? bx1 : bx2;
+    const dimY2 = isHoriz ? by2 : by2;
+    return (
+      <g stroke="#555" strokeWidth="0.6" fill="none">
+        <line x1={ax1} y1={ay1} x2={ax2} y2={ay2} strokeDasharray="2,2" stroke="#888" />
+        <line x1={bx1} y1={by1} x2={bx2} y2={by2} strokeDasharray="2,2" stroke="#888" />
+        <line x1={dimX1} y1={dimY1} x2={dimX2} y2={dimY2}
+          stroke="#444" strokeWidth="0.9"
+          markerStart="url(#tdArrL)" markerEnd="url(#tdArrR)" />
+        <text x={lx} y={ly}
+          textAnchor="middle" fontSize="8" fill="#222" fontFamily="monospace"
+          stroke="none" fontWeight="600"
+          transform={rot ? "rotate(" + rot + "," + lx + "," + ly + ")" : undefined}>
+          {label}
+        </text>
+      </g>
+    );
+  };
+
+  return (
+    <svg viewBox={"0 0 " + svgW + " " + svgH}
+      style={{ width: "100%", display: "block", margin: "8px 0 18px", background: "#f8fafc", border: "1px solid #d8e0e8" }}>
+      <defs>
+        <marker id="tdArrL" markerWidth="5" markerHeight="5" refX="0" refY="2.5" orient="auto">
+          <path d="M5,0 L0,2.5 L5,5 Z" fill="#555" />
+        </marker>
+        <marker id="tdArrR" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
+          <path d="M0,0 L5,2.5 L0,5 Z" fill="#555" />
+        </marker>
+      </defs>
+
+      {/* ── FRONT VIEW ── */}
+      <text x={fX + fW / 2} y={fY - 8} textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#2e5060" letterSpacing="0.5">FRONT VIEW</text>
+      <rect x={fX} y={fY} width={fW} height={fH} fill="#edf3f7" stroke="#2e5060" strokeWidth="1.6" />
+
+      {/* Lid / body split dashed */}
+      <line x1={fX} y1={splitY} x2={fX + fW} y2={splitY}
+        stroke="#2e5060" strokeWidth="1" strokeDasharray="5,3" />
+
+      {/* TH / BH bracket on right edge */}
+      <line x1={fX + fW - 8} y1={fY}       x2={fX + fW} y2={fY}       stroke="#1e5080" strokeWidth="0.7" />
+      <line x1={fX + fW - 8} y1={splitY}   x2={fX + fW} y2={splitY}   stroke="#1e5080" strokeWidth="0.7" />
+      <line x1={fX + fW - 8} y1={fY + fH}  x2={fX + fW} y2={fY + fH}  stroke="#1e5080" strokeWidth="0.7" />
+      <text x={fX + fW - 10} y={(fY + splitY) / 2 + 3}      textAnchor="end" fontSize="7.5" fill="#1e5080">TH {TH}mm</text>
+      <text x={fX + fW - 10} y={(splitY + fY + fH) / 2 + 3} textAnchor="end" fontSize="7.5" fill="#1e5080">BH {BH}mm</text>
+
+      {/* Hinges at split line */}
+      {hasHinge && [fX + fW * 0.25, fX + fW * 0.75].map((hx, i) => (
+        <g key={i}>
+          <rect x={hx - 5} y={splitY - 8} width="10" height="16" rx="2.5"
+            fill="#7888a0" stroke="#4a6070" strokeWidth="0.8" />
+          <circle cx={hx} cy={splitY} r="2" fill="#c0c8d8" />
+        </g>
+      ))}
+
+      {/* Lock at center body */}
+      {hasLock && (
+        <g>
+          <rect x={fX + fW / 2 - 10} y={bodyMidY - 6} width="20" height="12" rx="3"
+            fill="#333" stroke="#111" strokeWidth="0.8" />
+          <circle cx={fX + fW / 2} cy={bodyMidY} r="3.5" fill="#888" />
+          <circle cx={fX + fW / 2} cy={bodyMidY} r="1.5" fill="#444" />
+        </g>
+      )}
+
+      {/* Corner protectors */}
+      {[[fX, fY], [fX + fW, fY], [fX, fY + fH], [fX + fW, fY + fH]].map(([cx, cy], i) => (
+        <circle key={i} cx={cx} cy={cy} r="4.5" fill="#d4a017" stroke="#9a7010" strokeWidth="0.9" />
+      ))}
+
+      {/* Dim: OD_L below front */}
+      <ExtDim x1={fX} y1={fY + fH} x2={fX + fW} y2={fY + fH} side="below" label={"OD " + OD_L + " mm"} />
+      {/* Dim: OD_H right of front */}
+      <ExtDim x1={fX + fW} y1={fY} x2={fX + fW} y2={fY + fH} side="right" label={"OD " + OD_H + " mm"} />
+
+      {/* ── SIDE VIEW ── */}
+      <text x={sX + sW / 2} y={sY - 8} textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#2e5060" letterSpacing="0.5">SIDE VIEW</text>
+      <rect x={sX} y={sY} width={sW} height={fH} fill="#edf3f7" stroke="#2e5060" strokeWidth="1.6" />
+      <line x1={sX} y1={splitY} x2={sX + sW} y2={splitY}
+        stroke="#2e5060" strokeWidth="1" strokeDasharray="5,3" />
+      {[[sX, sY], [sX + sW, sY], [sX, sY + fH], [sX + sW, sY + fH]].map(([cx, cy], i) => (
+        <circle key={i} cx={cx} cy={cy} r="4.5" fill="#d4a017" stroke="#9a7010" strokeWidth="0.9" />
+      ))}
+      {/* Dim: OD_W below side */}
+      <ExtDim x1={sX} y1={sY + fH} x2={sX + sW} y2={sY + fH} side="below" label={"OD " + OD_W + " mm"} />
+
+      {/* ── TOP VIEW ── */}
+      <text x={tX + fW / 2} y={tY - 8} textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#2e5060" letterSpacing="0.5">TOP VIEW</text>
+      <rect x={tX} y={tY} width={fW} height={tH} fill="#edf3f7" stroke="#2e5060" strokeWidth="1.6" />
+      {hasHandle && (
+        <path d={"M " + (tX + fW / 2 - 16) + " " + (tY + tH * 0.28 + 5) +
+          " Q " + (tX + fW / 2) + " " + (tY + tH * 0.28 - 12) +
+          " " + (tX + fW / 2 + 16) + " " + (tY + tH * 0.28 + 5)}
+          fill="none" stroke="#333" strokeWidth="3.5" strokeLinecap="round" />
+      )}
+      {[[tX, tY], [tX + fW, tY], [tX, tY + tH], [tX + fW, tY + tH]].map(([cx, cy], i) => (
+        <circle key={i} cx={cx} cy={cy} r="4.5" fill="#d4a017" stroke="#9a7010" strokeWidth="0.9" />
+      ))}
+
+      {/* ID annotations inside front view */}
+      <text x={fX + 4} y={fY + fH - 4} fontSize="7" fill="#3a7a9a">ID {ID_L} x {ID_W} x {ID_H} mm</text>
+
+      {/* Footer note */}
+      <text x={fX} y={svgH - 4} fontSize="7" fill="#aaa">
+        {"Case: " + (caseType || "Standard") + "  |  ID = internal usable  |  OD = outer  |  All dims mm  |  Tol. ±2 mm"}
+      </text>
+    </svg>
+  );
+}
+
 function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal }) {
   const c = useMemo(() => calcQuote(quote), [quote]);
 
@@ -205,6 +366,15 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal }) {
                 </tr>
               </tfoot>
             </table>
+
+            {isWO && (
+              <CaseTechDraw
+                ID_L={ID_L} ID_W={ID_W} ID_H={ID_H} BH={BH} TH={TH}
+                OD_L={OD_L} OD_W={OD_W} OD_H={OD_H}
+                caseType={caseType}
+                hardware={(c.acc.rows||[]).map(r=>r.name)}
+              />
+            )}
 
             {isWO ? (
               <>
