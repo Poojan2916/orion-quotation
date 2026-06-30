@@ -176,7 +176,7 @@ function CaseBoxDiagram({ odL, odW, odH, bh, hardware }) {
         stroke="#444" strokeWidth="1" markerStart="url(#cbArrowL)" markerEnd="url(#cbArrow)" />
       <text x={dimH.mx} y={dimH.my}
         textAnchor="middle" fontSize="9" fill="#222" fontFamily="monospace" fontWeight="600"
-        transform={"rotate(-90," + dimH.mx + "," + dimH.my + "}"}>{odH} mm</text>
+        transform={"rotate(-90," + dimH.mx + "," + dimH.my + ")"}>{odH} mm</text>
 
       {/* Hardware legend */}
       {(() => {
