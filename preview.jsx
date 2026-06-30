@@ -3,6 +3,7 @@
    ============================================================ */
 
 
+
 function CaseBoxDiagram({ odL, odW, odH, bh, hardware }) {
   const COS = 0.866, SIN = 0.5;
   const maxD = Math.max(odL, odW, odH, 1);
@@ -22,11 +23,11 @@ function CaseBoxDiagram({ odL, odW, odH, bh, hardware }) {
   const allVals = Object.values(pts);
   const xs = allVals.map(v => v[0]);
   const ys = allVals.map(v => v[1]);
-  const pad = 45;
+  const pad = 52;
   const vx = Math.min(...xs) - pad;
   const vy = Math.min(...ys) - pad;
   const vw = Math.max(...xs) - vx + pad * 2;
-  const vh = Math.max(...ys) - vy + pad * 1.5;
+  const vh = Math.max(...ys) - vy + pad * 1.5 + 20;
 
   const hw = n => (hardware || []).some(a => (a || "").toLowerCase().includes(n));
   const hasLock   = hw("lock");
@@ -34,42 +35,75 @@ function CaseBoxDiagram({ odL, odW, odH, bh, hardware }) {
   const hasHandle = hw("handle");
   const hasFeet   = hw("feet") || hw("rubber") || hw("bush") || hw("foot");
 
-  const dimL = (() => {
-    const dy = 22;
-    const a = [pts.bfl[0], pts.bfl[1] + dy];
-    const b = [pts.bfr[0], pts.bfr[1] + dy];
-    return { a, b, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 - 5 };
-  })();
-
-  const dimW = (() => {
-    const dx = 18 * COS, dy = 18 * SIN;
-    const a = [pts.bfr[0] + dx, pts.bfr[1] + dy];
-    const b = [pts.bbr[0] + dx, pts.bbr[1] + dy];
-    return { a, b, mx: (a[0] + b[0]) / 2 + 5, my: (a[1] + b[1]) / 2 };
-  })();
-
-  const dimH = (() => {
-    const dx = -24;
-    const a = [pts.bfl[0] + dx, pts.bfl[1]];
-    const b = [pts.tfl[0] + dx, pts.tfl[1]];
-    return { a, b, mx: (a[0] + b[0]) / 2 - 4, my: (a[1] + b[1]) / 2 };
-  })();
-
   const TH = odH - bh;
 
+  const dimL = (() => {
+    const dy = 24;
+    const a = [pts.bfl[0], pts.bfl[1] + dy];
+    const b = [pts.bfr[0], pts.bfr[1] + dy];
+    return { a, b, mx: (a[0]+b[0])/2, my: (a[1]+b[1])/2 - 5 };
+  })();
+  const dimW = (() => {
+    const dx = 20*COS, dy = 20*SIN;
+    const a = [pts.bfr[0]+dx, pts.bfr[1]+dy];
+    const b = [pts.bbr[0]+dx, pts.bbr[1]+dy];
+    return { a, b, mx: (a[0]+b[0])/2+5, my: (a[1]+b[1])/2 };
+  })();
+  const dimH = (() => {
+    const dx = -28;
+    const a = [pts.bfl[0]+dx, pts.bfl[1]];
+    const b = [pts.tfl[0]+dx, pts.tfl[1]];
+    return { a, b, mx: (a[0]+b[0])/2-4, my: (a[1]+b[1])/2 };
+  })();
+
+  const shadowCx = [pts.bfl,pts.bfr,pts.bbr,pts.bbl].reduce((s,p)=>s+p[0],0)/4;
+  const shadowCy = [pts.bfl,pts.bfr,pts.bbr,pts.bbl].reduce((s,p)=>s+p[1],0)/4 + 10;
+  const shadowRx = (Math.max(pts.bfr[0],pts.bbr[0]) - Math.min(pts.bfl[0],pts.bbl[0])) * 0.56;
+  const shadowRy = shadowRx * 0.28;
+
   const legItems = [
-    { shape: "circle", fill: "#d4a017", stroke: "#9a7010", label: "Corner protectors (x8)", always: true },
-    { shape: "lock",   fill: "#444",    stroke: "#222",    label: "Recessed lock (x2)",      show: hasLock },
-    { shape: "hinge",  fill: "#7888a0", stroke: "#4a6070", label: "Butterfly hinge (x2)",    show: hasHinge },
-    { shape: "handle", fill: "none",    stroke: "#333",    label: "Aluminium handle (x1)",   show: hasHandle },
-    { shape: "feet",   fill: "#222",    stroke: "#000",    label: "Rubber feet (x4)",         show: hasFeet },
+    { shape: "corner", label: "Corner protectors (x8)", always: true },
+    { shape: "lock",   label: "Recessed lock (x2)",      show: hasLock },
+    { shape: "hinge",  label: "Butterfly hinges (x2)",   show: hasHinge },
+    { shape: "handle", label: "Aluminium handle (x1)",   show: hasHandle },
+    { shape: "feet",   label: "Rubber feet (x4)",         show: hasFeet },
   ].filter(it => it.always || it.show);
 
   return (
-    <svg viewBox={vx + " " + vy + " " + vw + " " + vh}
-      style={{ width: "100%", maxWidth: 440, display: "block", margin: "18px auto" }}
+    <svg viewBox={vx+" "+vy+" "+vw+" "+vh}
+      style={{ width:"100%", maxWidth:460, display:"block", margin:"18px auto" }}
       aria-label="Flight case box diagram">
       <defs>
+        <linearGradient id="cbGTop" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stopColor="#eaf2f8" />
+          <stop offset="55%"  stopColor="#cad8e4" />
+          <stop offset="100%" stopColor="#aec0cc" />
+        </linearGradient>
+        <linearGradient id="cbGFB" x1="0" y1="0" x2="0.15" y2="1">
+          <stop offset="0%"   stopColor="#c8d8e4" />
+          <stop offset="100%" stopColor="#96aebe" />
+        </linearGradient>
+        <linearGradient id="cbGFL" x1="0" y1="0" x2="0.15" y2="1">
+          <stop offset="0%"   stopColor="#d4e4f0" />
+          <stop offset="100%" stopColor="#aac0cc" />
+        </linearGradient>
+        <linearGradient id="cbGRB" x1="0" y1="0" x2="0.1" y2="1">
+          <stop offset="0%"   stopColor="#88a0ae" />
+          <stop offset="100%" stopColor="#6a8492" />
+        </linearGradient>
+        <linearGradient id="cbGRL" x1="0" y1="0" x2="0.1" y2="1">
+          <stop offset="0%"   stopColor="#98b2c0" />
+          <stop offset="100%" stopColor="#7a98a8" />
+        </linearGradient>
+        <radialGradient id="cbGCorner" cx="32%" cy="28%" r="72%">
+          <stop offset="0%"   stopColor="#ffe070" />
+          <stop offset="45%"  stopColor="#d4a010" />
+          <stop offset="100%" stopColor="#8a6008" />
+        </radialGradient>
+        <radialGradient id="cbGShadow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor="#000000" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+        </radialGradient>
         <marker id="cbArrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
           <path d="M0,0 L6,3 L0,6 Z" fill="#555" />
         </marker>
@@ -78,124 +112,171 @@ function CaseBoxDiagram({ odL, odW, odH, bh, hardware }) {
         </marker>
       </defs>
 
-      {/* Top face */}
-      <polygon points={pp([pts.tfl, pts.tfr, pts.tbr, pts.tbl])}
-        fill="#dde5eb" stroke="#4a6878" strokeWidth="1.3" />
-      {/* Front-left face */}
-      <polygon points={pp([pts.bfl, pts.tfl, pts.tfr, pts.bfr])}
-        fill="#c2cdd5" stroke="#4a6878" strokeWidth="1.3" />
-      {/* Front-right face */}
-      <polygon points={pp([pts.bfr, pts.tfr, pts.tbr, pts.bbr])}
-        fill="#a8b5bc" stroke="#4a6878" strokeWidth="1.3" />
+      {/* Ground shadow */}
+      <ellipse cx={shadowCx} cy={shadowCy} rx={shadowRx} ry={shadowRy} fill="url(#cbGShadow)" />
 
-      {/* Lid / body split — dashed line */}
-      <line x1={pts.lfl[0]} y1={pts.lfl[1]} x2={pts.lfr[0]} y2={pts.lfr[1]}
-        stroke="#1e3a50" strokeWidth="1.6" strokeDasharray="5,3" />
-      <line x1={pts.lfr[0]} y1={pts.lfr[1]} x2={pts.lbr[0]} y2={pts.lbr[1]}
-        stroke="#1e3a50" strokeWidth="1.6" strokeDasharray="5,3" />
+      {/* Body faces — bottom portion */}
+      <polygon points={pp([pts.bfl,pts.lfl,pts.lfr,pts.bfr])} fill="url(#cbGFB)" stroke="#5a7280" strokeWidth="0.9" />
+      <polygon points={pp([pts.bfr,pts.lfr,pts.lbr,pts.bbr])} fill="url(#cbGRB)" stroke="#5a7280" strokeWidth="0.9" />
 
-      {/* BH / TH inline labels */}
-      <text x={pts.lfr[0] + 5} y={(pts.lfr[1] + pts.bfr[1]) / 2 + 3}
-        fontSize="8" fill="#1e4a6a" fontFamily="monospace">BH {bh} mm</text>
-      <text x={pts.lfr[0] + 5} y={(pts.lfr[1] + pts.tfr[1]) / 2 + 3}
-        fontSize="8" fill="#1e4a6a" fontFamily="monospace">TH {TH} mm</text>
+      {/* Lid faces — upper portion */}
+      <polygon points={pp([pts.lfl,pts.tfl,pts.tfr,pts.lfr])} fill="url(#cbGFL)" stroke="#5a7280" strokeWidth="0.9" />
+      <polygon points={pp([pts.lfr,pts.tfr,pts.tbr,pts.lbr])} fill="url(#cbGRL)" stroke="#5a7280" strokeWidth="0.9" />
+      <polygon points={pp([pts.tfl,pts.tfr,pts.tbr,pts.tbl])} fill="url(#cbGTop)" stroke="#5a7280" strokeWidth="0.9" />
 
-      {/* Corners (always present) */}
-      {[pts.bfl, pts.bfr, pts.bbr, pts.bbl, pts.tfl, pts.tfr, pts.tbr, pts.tbl].map((v, i) => (
-        <circle key={i} cx={v[0]} cy={v[1]} r={3.5}
-          fill="#d4a017" stroke="#9a7010" strokeWidth="0.8" />
+      {/* Edge highlights — simulate aluminum extrusion shine */}
+      <line x1={pts.tfl[0]} y1={pts.tfl[1]} x2={pts.tfr[0]} y2={pts.tfr[1]} stroke="white" strokeWidth="2" opacity="0.65" />
+      <line x1={pts.tfl[0]} y1={pts.tfl[1]} x2={pts.tbl[0]} y2={pts.tbl[1]} stroke="white" strokeWidth="1.5" opacity="0.48" />
+      <line x1={pts.tfr[0]} y1={pts.tfr[1]} x2={pts.tbr[0]} y2={pts.tbr[1]} stroke="#c8d8e0" strokeWidth="1" opacity="0.5" />
+      <line x1={pts.bfl[0]} y1={pts.bfl[1]} x2={pts.tfl[0]} y2={pts.tfl[1]} stroke="#c0ccd4" strokeWidth="1" opacity="0.6" />
+
+      {/* Lid/body split — dashed gap line + subtle glow */}
+      <line x1={pts.lfl[0]} y1={pts.lfl[1]+0.8} x2={pts.lfr[0]} y2={pts.lfr[1]+0.8} stroke="#000" strokeWidth="1" opacity="0.15" />
+      <line x1={pts.lfl[0]} y1={pts.lfl[1]} x2={pts.lfr[0]} y2={pts.lfr[1]} stroke="#1e3850" strokeWidth="1.8" strokeDasharray="4.5,3" />
+      <line x1={pts.lfr[0]} y1={pts.lfr[1]+0.8} x2={pts.lbr[0]} y2={pts.lbr[1]+0.8} stroke="#000" strokeWidth="1" opacity="0.15" />
+      <line x1={pts.lfr[0]} y1={pts.lfr[1]} x2={pts.lbr[0]} y2={pts.lbr[1]} stroke="#1e3850" strokeWidth="1.8" strokeDasharray="4.5,3" />
+      <line x1={pts.lfl[0]} y1={pts.lfl[1]-0.6} x2={pts.lfr[0]} y2={pts.lfr[1]-0.6} stroke="white" strokeWidth="0.8" opacity="0.38" />
+
+      {/* BH / TH labels */}
+      <text x={pts.lfr[0]+5} y={(pts.lfr[1]+pts.bfr[1])/2+3} fontSize="8" fill="#1a4060" fontFamily="monospace">BH {bh}mm</text>
+      <text x={pts.lfr[0]+5} y={(pts.lfr[1]+pts.tfr[1])/2+3} fontSize="8" fill="#1a4060" fontFamily="monospace">TH {TH}mm</text>
+
+      {/* Corner protectors — metallic gold sphere */}
+      {[pts.bfl,pts.bfr,pts.bbr,pts.bbl,pts.tfl,pts.tfr,pts.tbr,pts.tbl].map((v,i) => (
+        <g key={i}>
+          <circle cx={v[0]} cy={v[1]} r={4.8} fill="url(#cbGCorner)" stroke="#7a5808" strokeWidth="0.8" />
+          <circle cx={v[0]-1.4} cy={v[1]-1.4} r={1.3} fill="white" opacity="0.42" />
+        </g>
       ))}
 
       {/* Lock */}
       {hasLock && (() => {
-        const lk = iso(odL / 2, 0, bh / 2);
+        const lk = iso(odL/2, 0, bh/2);
         return (
           <g>
-            <rect x={lk[0] - 7} y={lk[1] - 4} width="14" height="9" rx="2"
-              fill="#444" stroke="#222" strokeWidth="0.8" />
-            <circle cx={lk[0]} cy={lk[1] + 0.5} r="2" fill="#999" />
+            <rect x={lk[0]-10} y={lk[1]-7} width="20" height="14" rx="3" fill="#222" stroke="#111" strokeWidth="0.8" />
+            <rect x={lk[0]-10} y={lk[1]-7} width="20" height="6" rx="3" fill="#333" />
+            <circle cx={lk[0]} cy={lk[1]+2} r="4" fill="#555" stroke="#2a2a2a" strokeWidth="0.6" />
+            <circle cx={lk[0]} cy={lk[1]+1.5} r="1.5" fill="#1a1a1a" />
+            <rect x={lk[0]-0.9} y={lk[1]+1.5} width="1.8" height="2.8" fill="#1a1a1a" />
+            <rect x={lk[0]-9} y={lk[1]-6.2} width="18" height="2" rx="1" fill="white" opacity="0.12" />
           </g>
         );
       })()}
 
-      {/* Hinges at lid/body line on front face */}
-      {hasHinge && [odL * 0.25, odL * 0.75].map((x, i) => {
+      {/* Butterfly hinges */}
+      {hasHinge && [odL*0.25, odL*0.75].map((x, i) => {
         const hg = iso(x, 0, bh);
         return (
-          <rect key={i} x={hg[0] - 3} y={hg[1] - 7} width="6" height="14" rx="1.5"
-            fill="#7888a0" stroke="#4a6070" strokeWidth="0.8" />
+          <g key={i}>
+            <rect x={hg[0]-5} y={hg[1]}   width="10" height="8" rx="2" fill="#9aa0a8" stroke="#5a6068" strokeWidth="0.7" />
+            <rect x={hg[0]-5} y={hg[1]-8} width="10" height="8" rx="2" fill="#b0b8c0" stroke="#5a6068" strokeWidth="0.7" />
+            <circle cx={hg[0]} cy={hg[1]} r="2.2" fill="#d0d8e0" stroke="#6a7880" strokeWidth="0.6" />
+            {[-2.8,2.8].map((dx,j) => (
+              <g key={j}>
+                <circle cx={hg[0]+dx} cy={hg[1]+4}  r={1.1} fill="#c0c8d0" />
+                <circle cx={hg[0]+dx} cy={hg[1]-4}  r={1.1} fill="#c0c8d0" />
+              </g>
+            ))}
+          </g>
         );
       })}
 
-      {/* Handle on top face */}
+      {/* Handle — aluminum bar with end caps */}
       {hasHandle && (() => {
-        const hd = iso(odL / 2, odW / 3.5, odH);
+        const hd = iso(odL/2, odW/3.5, odH);
+        const hw2 = 15;
         return (
-          <path d={"M " + (hd[0] - 12) + " " + (hd[1] + 3) +
-            " Q " + hd[0] + " " + (hd[1] - 9) +
-            " " + (hd[0] + 12) + " " + (hd[1] + 3)}
-            fill="none" stroke="#333" strokeWidth="3" strokeLinecap="round" />
+          <g>
+            <rect x={hd[0]-hw2-5} y={hd[1]-1} width="6" height="9" rx="1.5" fill="#888" stroke="#555" strokeWidth="0.5" />
+            <rect x={hd[0]+hw2-1} y={hd[1]-1} width="6" height="9" rx="1.5" fill="#888" stroke="#555" strokeWidth="0.5" />
+            <path d={"M "+(hd[0]-hw2)+" "+(hd[1]+4.5)+" Q "+hd[0]+" "+(hd[1]-10)+" "+(hd[0]+hw2)+" "+(hd[1]+4.5)}
+              fill="none" stroke="#1a1a1a" strokeWidth="6" strokeLinecap="round" />
+            <path d={"M "+(hd[0]-hw2)+" "+(hd[1]+4.5)+" Q "+hd[0]+" "+(hd[1]-10)+" "+(hd[0]+hw2)+" "+(hd[1]+4.5)}
+              fill="none" stroke="#787878" strokeWidth="4.5" strokeLinecap="round" />
+            <path d={"M "+(hd[0]-hw2+2)+" "+(hd[1]+3)+" Q "+hd[0]+" "+(hd[1]-8)+" "+(hd[0]+hw2-2)+" "+(hd[1]+3)}
+              fill="none" stroke="#c8c8c8" strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
+          </g>
         );
       })()}
 
-      {/* Feet at bottom corners */}
-      {hasFeet && [[0.1, 0.1], [0.9, 0.1], [0.1, 0.9], [0.9, 0.9]].map(([fx, fy], i) => {
-        const ft = iso(odL * fx, odW * fy, 0);
+      {/* Rubber feet */}
+      {hasFeet && [[0.1,0.1],[0.9,0.1],[0.1,0.9],[0.9,0.9]].map(([fx,fy],i) => {
+        const ft = iso(odL*fx, odW*fy, 0);
         return (
-          <ellipse key={i} cx={ft[0]} cy={ft[1]} rx="3.5" ry="2"
-            fill="#222" stroke="#000" strokeWidth="0.5" />
+          <g key={i}>
+            <ellipse cx={ft[0]} cy={ft[1]+1} rx="4.5" ry="2.5" fill="#0a0a0a" opacity="0.4" />
+            <ellipse cx={ft[0]} cy={ft[1]} rx="4.5" ry="2.8" fill="#181818" stroke="#000" strokeWidth="0.4" />
+            <ellipse cx={ft[0]} cy={ft[1]-0.5} rx="3" ry="1.6" fill="#323232" />
+          </g>
         );
       })}
 
       {/* Dimension: Length */}
-      <line x1={pts.bfl[0]} y1={pts.bfl[1]} x2={dimL.a[0]} y2={dimL.a[1]}
-        stroke="#888" strokeWidth="0.6" strokeDasharray="2,2" />
-      <line x1={pts.bfr[0]} y1={pts.bfr[1]} x2={dimL.b[0]} y2={dimL.b[1]}
-        stroke="#888" strokeWidth="0.6" strokeDasharray="2,2" />
-      <line x1={dimL.a[0]} y1={dimL.a[1]} x2={dimL.b[0]} y2={dimL.b[1]}
-        stroke="#444" strokeWidth="1" markerStart="url(#cbArrowL)" markerEnd="url(#cbArrow)" />
-      <text x={dimL.mx} y={dimL.my}
-        textAnchor="middle" fontSize="9" fill="#222" fontFamily="monospace" fontWeight="600">{odL} mm</text>
+      <line x1={pts.bfl[0]} y1={pts.bfl[1]} x2={dimL.a[0]} y2={dimL.a[1]} stroke="#aaa" strokeWidth="0.6" strokeDasharray="2,2" />
+      <line x1={pts.bfr[0]} y1={pts.bfr[1]} x2={dimL.b[0]} y2={dimL.b[1]} stroke="#aaa" strokeWidth="0.6" strokeDasharray="2,2" />
+      <line x1={dimL.a[0]} y1={dimL.a[1]} x2={dimL.b[0]} y2={dimL.b[1]} stroke="#444" strokeWidth="1" markerStart="url(#cbArrowL)" markerEnd="url(#cbArrow)" />
+      <text x={dimL.mx} y={dimL.my} textAnchor="middle" fontSize="9" fill="#222" fontFamily="monospace" fontWeight="600">{odL} mm</text>
 
       {/* Dimension: Width */}
-      <line x1={pts.bfr[0]} y1={pts.bfr[1]} x2={dimW.a[0]} y2={dimW.a[1]}
-        stroke="#888" strokeWidth="0.6" strokeDasharray="2,2" />
-      <line x1={pts.bbr[0]} y1={pts.bbr[1]} x2={dimW.b[0]} y2={dimW.b[1]}
-        stroke="#888" strokeWidth="0.6" strokeDasharray="2,2" />
-      <line x1={dimW.a[0]} y1={dimW.a[1]} x2={dimW.b[0]} y2={dimW.b[1]}
-        stroke="#444" strokeWidth="1" markerStart="url(#cbArrowL)" markerEnd="url(#cbArrow)" />
-      <text x={dimW.mx} y={dimW.my}
-        textAnchor="start" fontSize="9" fill="#222" fontFamily="monospace" fontWeight="600">{odW} mm</text>
+      <line x1={pts.bfr[0]} y1={pts.bfr[1]} x2={dimW.a[0]} y2={dimW.a[1]} stroke="#aaa" strokeWidth="0.6" strokeDasharray="2,2" />
+      <line x1={pts.bbr[0]} y1={pts.bbr[1]} x2={dimW.b[0]} y2={dimW.b[1]} stroke="#aaa" strokeWidth="0.6" strokeDasharray="2,2" />
+      <line x1={dimW.a[0]} y1={dimW.a[1]} x2={dimW.b[0]} y2={dimW.b[1]} stroke="#444" strokeWidth="1" markerStart="url(#cbArrowL)" markerEnd="url(#cbArrow)" />
+      <text x={dimW.mx} y={dimW.my} textAnchor="start" fontSize="9" fill="#222" fontFamily="monospace" fontWeight="600">{odW} mm</text>
 
       {/* Dimension: Height */}
-      <line x1={pts.bfl[0]} y1={pts.bfl[1]} x2={dimH.a[0]} y2={dimH.a[1]}
-        stroke="#888" strokeWidth="0.6" strokeDasharray="2,2" />
-      <line x1={pts.tfl[0]} y1={pts.tfl[1]} x2={dimH.b[0]} y2={dimH.b[1]}
-        stroke="#888" strokeWidth="0.6" strokeDasharray="2,2" />
-      <line x1={dimH.a[0]} y1={dimH.a[1]} x2={dimH.b[0]} y2={dimH.b[1]}
-        stroke="#444" strokeWidth="1" markerStart="url(#cbArrowL)" markerEnd="url(#cbArrow)" />
-      <text x={dimH.mx} y={dimH.my}
-        textAnchor="middle" fontSize="9" fill="#222" fontFamily="monospace" fontWeight="600"
-        transform={"rotate(-90," + dimH.mx + "," + dimH.my + ")"}>{odH} mm</text>
+      <line x1={pts.bfl[0]} y1={pts.bfl[1]} x2={dimH.a[0]} y2={dimH.a[1]} stroke="#aaa" strokeWidth="0.6" strokeDasharray="2,2" />
+      <line x1={pts.tfl[0]} y1={pts.tfl[1]} x2={dimH.b[0]} y2={dimH.b[1]} stroke="#aaa" strokeWidth="0.6" strokeDasharray="2,2" />
+      <line x1={dimH.a[0]} y1={dimH.a[1]} x2={dimH.b[0]} y2={dimH.b[1]} stroke="#444" strokeWidth="1" markerStart="url(#cbArrowL)" markerEnd="url(#cbArrow)" />
+      <text x={dimH.mx} y={dimH.my} textAnchor="middle" fontSize="9" fill="#222" fontFamily="monospace" fontWeight="600"
+        transform={"rotate(-90,"+dimH.mx+","+dimH.my+")"}>{odH} mm</text>
 
       {/* Hardware legend */}
       {(() => {
-        const lx = vx + 5, ly = vy + 6;
-        const boxH = legItems.length * 17 + 10;
+        const lx = vx + 6, ly = vy + 6;
+        const boxH = legItems.length * 18 + 12;
         return (
           <g>
-            <rect x={lx} y={ly} width="120" height={boxH}
-              fill="white" fillOpacity="0.88" rx="3" stroke="#ccc" strokeWidth="0.8" />
+            <rect x={lx} y={ly} width="128" height={boxH} fill="white" fillOpacity="0.92" rx="4" stroke="#ddd" strokeWidth="0.8" />
             {legItems.map((it, idx) => {
-              const iy = ly + 14 + idx * 17;
+              const iy = ly + 15 + idx * 18;
               return (
                 <g key={idx}>
-                  {it.shape === "circle"  && <circle cx={lx + 10} cy={iy - 3} r={3.5} fill={it.fill} stroke={it.stroke} strokeWidth="0.8" />}
-                  {it.shape === "lock"    && <rect x={lx + 5} y={iy - 7} width="10" height="7" rx="1.5" fill={it.fill} />}
-                  {it.shape === "hinge"   && <rect x={lx + 7} y={iy - 8} width="5" height="11" rx="1" fill={it.fill} />}
-                  {it.shape === "handle"  && <path d={"M " + (lx+4) + " " + iy + " Q " + (lx+10) + " " + (iy-7) + " " + (lx+16) + " " + iy} fill="none" stroke={it.stroke} strokeWidth="2.5" strokeLinecap="round" />}
-                  {it.shape === "feet"    && <ellipse cx={lx + 10} cy={iy - 2} rx="4" ry="2.5" fill={it.fill} />}
-                  <text x={lx + 22} y={iy} fontSize="7.5" fill="#444">{it.label}</text>
+                  {it.shape === "corner" && (
+                    <g>
+                      <circle cx={lx+11} cy={iy-3} r={4.8} fill="url(#cbGCorner)" stroke="#7a5808" strokeWidth="0.7" />
+                      <circle cx={lx+9.5} cy={iy-4.5} r={1.3} fill="white" opacity="0.42" />
+                    </g>
+                  )}
+                  {it.shape === "lock" && (
+                    <g>
+                      <rect x={lx+5} y={iy-9} width="12" height="9" rx="2" fill="#222" />
+                      <circle cx={lx+11} cy={iy-1} r="3" fill="#555" />
+                      <circle cx={lx+11} cy={iy-1.5} r="1.2" fill="#1a1a1a" />
+                    </g>
+                  )}
+                  {it.shape === "hinge" && (
+                    <g>
+                      <rect x={lx+6} y={iy-9} width="10" height="7" rx="2" fill="#b0b8c0" />
+                      <rect x={lx+6} y={iy-2} width="10" height="7" rx="2" fill="#9aa0a8" />
+                      <circle cx={lx+11} cy={iy-2} r="2" fill="#d0d8e0" />
+                    </g>
+                  )}
+                  {it.shape === "handle" && (
+                    <g>
+                      <path d={"M "+(lx+3)+" "+iy+" Q "+(lx+11)+" "+(iy-9)+" "+(lx+19)+" "+iy}
+                        fill="none" stroke="#1a1a1a" strokeWidth="5" strokeLinecap="round" />
+                      <path d={"M "+(lx+3)+" "+iy+" Q "+(lx+11)+" "+(iy-9)+" "+(lx+19)+" "+iy}
+                        fill="none" stroke="#787878" strokeWidth="3.5" strokeLinecap="round" />
+                    </g>
+                  )}
+                  {it.shape === "feet" && (
+                    <g>
+                      <ellipse cx={lx+11} cy={iy-2} rx="5.5" ry="3.2" fill="#181818" />
+                      <ellipse cx={lx+11} cy={iy-2.5} rx="3.8" ry="2" fill="#323232" />
+                    </g>
+                  )}
+                  <text x={lx+24} y={iy} fontSize="7.5" fill="#444">{it.label}</text>
                 </g>
               );
             })}
@@ -205,6 +286,7 @@ function CaseBoxDiagram({ odL, odW, odH, bh, hardware }) {
     </svg>
   );
 }
+
 
 function Preview({ quote, onBack, onEdit, onInternal, onDeliver, onBom }) {
   const c = useMemo(() => calcQuote(quote), [quote]);
