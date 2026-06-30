@@ -261,7 +261,7 @@ function App({ currentUser, onLogout }) {
           <button className={view === "dashboard" ? "active" : ""} onClick={goDashboard}>Dashboard</button>
           <button className={view === "priceCheck" ? "active" : ""} onClick={() => { setDraft(null); setView("priceCheck"); }}>Price Check</button>
           <button className={(view === "form" || view === "preview" || view === "internal" || view === "bom") ? "active" : ""} onClick={() => { if (view === "dashboard" || view === "priceCheck") newQuote(); }}>
-            {view === "preview" ? "Customer Quote" : view === "internal" ? "Internal Costing" : view === "bom" ? "Work Order / BOM" : "New Quotation"}
+            {view === "preview" ? "Customer Quote" : view === "internal" ? "Internal Costing" : view === "bom" ? "Work Order" : "New Quotation"}
           </button>
           <button className={view === "settings" ? "active" : ""} onClick={openSettings}>Settings</button>
         </nav>
