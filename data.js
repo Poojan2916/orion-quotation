@@ -22,7 +22,7 @@ const ACP_SHEET = { w: 1220, h: 2420 }; // mm standard sheet (fallback)
 const PANEL_MATERIALS = [
   { name: "ACP",        sheetW: 1220, sheetL: 2420, thicknessOptions: [3, 4, 6],      thickness: 4,  baseRate: 38, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 1500 },
   { name: "MDF",        sheetW: 1220, sheetL: 2440, thicknessOptions: [6, 9, 12, 18], thickness: 12, baseRate: 25, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 750 },
-  { name: "Plywood",    sheetW: 1220, sheetL: 2440, thicknessOptions: [6, 12, 18],    thickness: 12, baseRate: 35, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 650 },
+  { name: "Plywood",    sheetW: 1220, sheetL: 2440, thicknessOptions: [6, 8, 12, 18], thickness: 12, baseRate: 35, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 650 },
   { name: "ABS Silver", sheetW: 1220, sheetL: 2440, thicknessOptions: [1.5, 2, 3],    thickness: 2,  baseRate: 55, margin: "", overlay: "", cutMargin: 20, densityKgPerM3: 1050 },
 ];
 function panelMaterial(name) { return SETTINGS.panelMaterials.find(m => m.name === name) || SETTINGS.panelMaterials[0]; }
