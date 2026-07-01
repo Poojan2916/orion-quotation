@@ -607,9 +607,6 @@ function blankDelivery() {
   return {
     externalPdfName: "",
     internalPdfName: "",
-    externalDriveLink: "",
-    internalDriveLink: "",
-    driveSavedAt: "",      // ISO timestamp of last Drive save
     emailSent: false,
     sentAt: "",            // ISO timestamp the customer copy was emailed
     emailTo: "",
