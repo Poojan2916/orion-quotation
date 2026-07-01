@@ -1,16 +1,13 @@
 /* ============================================================
-   Delivery — Zoho WorkDrive + Zoho Mail workflow
+   Delivery — Zoho Mail workflow
    ------------------------------------------------------------
    • Generates TWO real PDFs from a quote:
        - Customer / External  (no costing internals)
        - Company / Internal   (full costing breakdown)
-   • Saves PDFs to Zoho WorkDrive and sends customer emails through the live
-     Orion Netlify backend.
+   • Sends customer email with PDF attached through the live
+     Orion Netlify backend via Zoho Mail.
    ============================================================ */
 
-const DRIVE_ROOT = "Orion Quotations Invoices";
-const DRIVE_EXTERNAL = "Customer Copy - External";
-const DRIVE_INTERNAL = "Company Copy - Internal";
 
 // Logo for PDFs. The standalone build replaces this path with an inline data URI.
 const ORION_LOGO_SRC = "assets/orion-logo.png";
@@ -426,45 +423,7 @@ function DeliveryPanel({ quote, onUpdate, onBack }) {
   const genCustomer = () => { downloadDoc(buildCustomerPDF(quote), extName); flash("Customer PDF generated: " + extName); };
   const genInternal = () => { downloadDoc(buildInternalPDF(quote), intName); flash("Internal PDF generated: " + intName); };
 
-  // LIVE Zoho WorkDrive save through Netlify Functions
-  const saveToDrive = async () => {
-    setBusy("drive");
-    try {
-      const res = await fetch(ORION_API + "/finalize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          externalFileName: extName,
-          internalFileName: intName,
-          externalPdfBase64: docToBase64(buildCustomerPDF(quote)),
-          internalPdfBase64: docToBase64(buildInternalPDF(quote)),
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "WorkDrive upload failed");
-
-      onUpdate({
-        delivery: {
-          ...d,
-          externalPdfName: extName,
-          internalPdfName: intName,
-          externalDriveLink: data.externalDriveLink,
-          internalDriveLink: data.internalDriveLink,
-          driveSavedAt: data.savedAt || new Date().toISOString(),
-        },
-      });
-
-      flash("Saved to Zoho WorkDrive — both copies filed into their folders");
-    } catch (e) {
-      flash(e.message || "WorkDrive upload failed", "warn");
-    } finally {
-      setBusy("");
-    }
-  };
-
   // LIVE Zoho Mail send through Netlify Functions
-  // Direct attachment mode: WorkDrive saving is optional and NOT required before emailing.
   // The customer PDF is generated in-browser and sent to the backend as base64.
   const sendEmail = async () => {
     if (!email.to.trim()) { flash("Enter a customer email address first", "warn"); return; }
@@ -522,7 +481,7 @@ function DeliveryPanel({ quote, onUpdate, onBack }) {
         <div className="card deliver-main">
           <div className="deliver-head">
             <div>
-              <div className="eyebrow">Zoho WorkDrive + Zoho Mail</div>
+              <div className="eyebrow">Zoho Mail</div>
               <h2>Finalize &amp; Deliver</h2>
             </div>
             <div className="doctype-toggle">
@@ -532,8 +491,8 @@ function DeliveryPanel({ quote, onUpdate, onBack }) {
           </div>
 
           <div className="sim-banner">
-            <b>Live Zoho mode.</b> WorkDrive saving and Zoho Mail sending now run through the Orion Netlify backend.
-            The customer and internal PDFs are generated in-browser. Email can attach the customer PDF directly; WorkDrive saving is optional.
+            <b>Live Zoho Mail mode.</b> Customer emails are sent through the Orion Netlify backend.
+            PDFs are generated in-browser and attached directly to the email.
           </div>
 
           {/* Step 1 — PDFs */}
@@ -566,32 +525,9 @@ function DeliveryPanel({ quote, onUpdate, onBack }) {
             </div>
           </div>
 
-          {/* Step 2 — Optional Drive */}
+          {/* Step 2 — Email */}
           <div className="deliver-step">
             <div className="step-no">2</div>
-            <div className="step-body">
-              <h3>Optional: Save both to Zoho WorkDrive</h3>
-              <div className="folder-tree">
-                <div className="ft-root"><Icon name="cloud" /> {DRIVE_ROOT}</div>
-                <div className="ft-child"><Icon name="file" /> {DRIVE_EXTERNAL} <em>&rarr; {extName}</em></div>
-                <div className="ft-child"><Icon name="layers" /> {DRIVE_INTERNAL} <em>&rarr; {intName}</em></div>
-              </div>
-              <button className="btn btn-primary" onClick={saveToDrive} disabled={busy === "drive"}>
-                <Icon name="cloudup" /> {busy === "drive" ? "Saving..." : "Save both to Zoho WorkDrive"}
-              </button>
-              {d.driveSavedAt && (
-                <div className="drive-links">
-                  <div className="ok-line"><Icon name="check" /> Filed {fmtTime(d.driveSavedAt)}</div>
-                  <a href={d.externalDriveLink} target="_blank" rel="noreferrer"><Icon name="link" /> External copy in WorkDrive</a>
-                  <a href={d.internalDriveLink} target="_blank" rel="noreferrer"><Icon name="link" /> Internal copy in WorkDrive</a>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Step 3 — Email */}
-          <div className="deliver-step">
-            <div className="step-no">3</div>
             <div className="step-body">
               <h3>Send customer copy by email</h3>
               <div className="email-form">
@@ -624,8 +560,6 @@ function DeliveryPanel({ quote, onUpdate, onBack }) {
             <div className="rec"><span>Date</span><b>{new Date(quote.date + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</b></div>
             <div className="rec"><span>Total amount</span><b>{money(c.grand, 0)}</b></div>
             <div className="rec"><span>Status</span><b><StatusBadge status={quote.status} /></b></div>
-            <div className="rec"><span>External PDF</span><b>{d.externalDriveLink ? <a href={d.externalDriveLink} target="_blank" rel="noreferrer">WorkDrive link</a> : "not saved"}</b></div>
-            <div className="rec"><span>Internal PDF</span><b>{d.internalDriveLink ? <a href={d.internalDriveLink} target="_blank" rel="noreferrer">WorkDrive link</a> : "not saved"}</b></div>
             <div className="rec"><span>Email sent</span><b>{d.emailSent ? "Yes" : "No"}</b></div>
             <div className="rec"><span>Sent at</span><b>{d.sentAt ? fmtTime(d.sentAt) : "-"}</b></div>
           </div>
