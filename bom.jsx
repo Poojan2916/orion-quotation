@@ -244,6 +244,17 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal }) {
 
     const lPattiBom = isR ? Math.ceil(mProMM / 304.8) : 0;
 
+    const mProPieces = [
+      { len: ID_L + mOff, qty: 2 },
+      { len: ID_W + mOff, qty: 2 },
+    ];
+    const rProPieces = [
+      { len: ID_L + ro[0], qty: 4 },
+      { len: ID_W + ro[1], qty: 4 },
+      { len: BH  + ro[2], qty: 4 },
+      { len: TH  + ro[3], qty: 4 },
+    ].filter(p => p.len > 0);
+
     const namesMap = {
       "4MM R":  { m: "Male Profile Silver 4mm",          f: "Female Profile Silver 4mm",   r: "R Profile Silver 4mm" },
       "2MM R":  { m: "Male Profile Silver 2mm",          f: "Female Profile Silver 2mm",   r: "R Profile Without Coating 2mm" },
@@ -252,7 +263,8 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal }) {
     };
     const names = namesMap[caseType];
     return { mProMM, mProFtExact, mProBom, fProBom: mProBom,
-             rProMM, rProFtExact, rProBom, lPattiBom, isR, ...names };
+             rProMM, rProFtExact, rProBom, lPattiBom, isR,
+             mProPieces, rProPieces, ...names };
   })();
 
   const woBox = isWO ? { L: OD_L + OD_W + 295, W: OD_W + OD_H + 215 } : null;
@@ -471,48 +483,50 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal }) {
               <table className="bom-tbl">
                 <thead>
                   <tr>
-                    <th>Type</th>
-                    <th>Item</th>
-                    <th className="num">Total (mm)</th>
+                    <th>Profile / Cut Size</th>
+                    <th className="num">Pcs</th>
+                    <th className="num">Sub-total (mm)</th>
                     <th className="num">Exact (ft)</th>
                     <th className="num">Order qty (ft)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>M / Frame</td>
-                    <td>{woProfiles.m}</td>
-                    <td className="num mono">{Math.round(woProfiles.mProMM)}</td>
-                    <td className="num">{woProfiles.mProFtExact.toFixed(2)}</td>
-                    <td className="num bom-ft">{woProfiles.mProBom}</td>
-                  </tr>
-                  {woProfiles.f && (
-                    <tr>
-                      <td>F / Female</td>
-                      <td>{woProfiles.f}</td>
-                      <td className="num mono">{Math.round(woProfiles.mProMM)}</td>
-                      <td className="num">{woProfiles.mProFtExact.toFixed(2)}</td>
-                      <td className="num bom-ft">{woProfiles.fProBom}</td>
-                    </tr>
-                  )}
-                  {woProfiles.r && (
-                    <tr>
-                      <td>R / Corner</td>
-                      <td>{woProfiles.r}</td>
-                      <td className="num mono">{Math.round(woProfiles.rProMM)}</td>
-                      <td className="num">{woProfiles.rProFtExact.toFixed(2)}</td>
-                      <td className="num bom-ft">{woProfiles.rProBom}</td>
-                    </tr>
-                  )}
-                  {woProfiles.isR && woProfiles.lPattiBom > 0 && (
-                    <tr>
-                      <td>L Patti</td>
-                      <td>L Patti 12mm</td>
-                      <td className="num mono">{"—"}</td>
-                      <td className="num">{"—"}</td>
-                      <td className="num bom-ft">{woProfiles.lPattiBom}</td>
-                    </tr>
-                  )}
+                  {[
+                    { label: "M / Frame",  name: woProfiles.m, pieces: woProfiles.mProPieces, bom: woProfiles.mProBom },
+                    woProfiles.f ? { label: "F / Female", name: woProfiles.f, pieces: woProfiles.mProPieces, bom: woProfiles.fProBom } : null,
+                    woProfiles.r ? { label: "R / Corner", name: woProfiles.r, pieces: woProfiles.rProPieces, bom: woProfiles.rProBom } : null,
+                    (woProfiles.isR && woProfiles.lPattiBom > 0) ? { label: "L Patti", name: "L Patti 12mm", pieces: woProfiles.mProPieces, bom: woProfiles.lPattiBom } : null,
+                  ].filter(Boolean).map((prof, pi) => {
+                    const totalMm  = prof.pieces.reduce((s, p) => s + p.len * p.qty, 0);
+                    const totalPcs = prof.pieces.reduce((s, p) => s + p.qty, 0);
+                    const totalFt  = (totalMm / 304.8).toFixed(2);
+                    return (
+                      <React.Fragment key={pi}>
+                        {pi > 0 && <tr><td colSpan="5" style={{ height: 3, padding: 0, background: "#a8c4dc" }}></td></tr>}
+                        <tr style={{ background: "#ddeaf5" }}>
+                          <td colSpan="5" style={{ padding: "4px 8px", fontWeight: 700, color: "#1a3a5a", fontSize: "12px" }}>
+                            {prof.label + " — " + prof.name}
+                          </td>
+                        </tr>
+                        {prof.pieces.map((p, i) => (
+                          <tr key={i} style={{ background: i % 2 === 0 ? "#fff" : "#f4f8fc" }}>
+                            <td className="mono" style={{ paddingLeft: 22 }}>{p.len} mm</td>
+                            <td className="num">{p.qty} pcs</td>
+                            <td className="num mono">{p.len * p.qty} mm</td>
+                            <td className="num">{(p.len * p.qty / 304.8).toFixed(2)} ft</td>
+                            <td></td>
+                          </tr>
+                        ))}
+                        <tr style={{ fontWeight: 700, background: "#b8d0e8", borderTop: "1.5px solid #6888a8" }}>
+                          <td style={{ paddingLeft: 22 }}>Total</td>
+                          <td className="num">{totalPcs} pcs</td>
+                          <td className="num mono">{Math.round(totalMm)} mm</td>
+                          <td className="num">{totalFt} ft</td>
+                          <td className="num bom-ft">Order {prof.bom} ft</td>
+                        </tr>
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             ) : (
