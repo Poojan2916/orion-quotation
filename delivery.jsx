@@ -563,7 +563,7 @@ function DeliveryPanel({ quote, onUpdate, onBack }) {
             <div className="rec"><span>Email sent</span><b>{d.emailSent ? "Yes" : "No"}</b></div>
             <div className="rec"><span>Sent at</span><b>{d.sentAt ? fmtTime(d.sentAt) : "-"}</b></div>
           </div>
-          <div className="rec-foot">This record is stored with the saved quote (the same fields the Node.js backend persists).</div>
+          <div className="rec-foot">This record is stored with the saved quote.</div>
         </div>
       </div>
     </div>
