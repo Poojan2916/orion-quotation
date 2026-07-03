@@ -349,16 +349,16 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal, onUpdate }) {
             </div>
 
             <div className="bom-meta-grid">
-              <div><span>WO / Quote No.</span><b>{quote.quoteNo}</b></div>
+              <div><span>WO / Quote No.</span><b>{wo.woNumber || quote.quoteNo}</b></div>
               <div><span>Customer</span><b>{quote.customer.company || quote.customer.name || "—"}</b></div>
               <div><span>Product</span><b>{quote.product.name || "—"}</b></div>
               <div><span>Date</span><b>{fmtDate(quote.date)}</b></div>
-              <div><span>Quantity</span><b>{qty} box{qty === 1 ? "" : "es"}</b></div>
+              <div><span>Quantity</span><b>{wo.qty ? wo.qty + " (WO)" : qty + " box" + (qty === 1 ? "" : "es")}</b></div>
               {quote.product.ref && <div><span>Drawing Ref</span><b className="mono">{quote.product.ref}</b></div>}
             </div>
 
-            {isWO && (
-              <div className="wo-ref-box no-print-border">
+            {(
+              <div className="wo-ref-box">
                 <div className="wo-ref-grid">
                   <div className="wo-ref-cell">
                     <span className="wo-ref-label">PO No.</span>
@@ -378,7 +378,7 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal, onUpdate }) {
                   </div>
                   <div className="wo-ref-cell">
                     <span className="wo-ref-label">Work Order No.</span>
-                    <input className="wo-ref-input" value={wo.woNumber} onChange={e => setWo({ woNumber: e.target.value })} placeholder="—" />
+                    <input className="wo-ref-input" value={wo.woNumber} onChange={e => setWo({ woNumber: e.target.value })} placeholder={quote.quoteNo.replace("ORION-", "WO-")} />
                   </div>
                   <div className="wo-ref-cell">
                     <span className="wo-ref-label">Quantity</span>
