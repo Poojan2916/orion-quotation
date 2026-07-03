@@ -543,6 +543,7 @@ function normalizeQuote(q) {
   if (!out.paymentTerms) out.paymentTerms = SETTINGS.paymentTerms || DEFAULT_PAYMENT_TERMS;
   if (out.docType !== "invoice") out.docType = "quotation";
   out.delivery = { ...blankDelivery(), ...(q.delivery || {}) };
+  out.wo = { ...blankWo(), ...(q.wo || {}) };
   return out;
 }
 
@@ -599,7 +600,12 @@ function makeBlankQuote(seq) {
     terms: (SETTINGS.terms && SETTINGS.terms.length ? SETTINGS.terms.slice() : DEFAULT_TERMS.slice()),
     docType: "quotation",   // "quotation" | "invoice"
     delivery: blankDelivery(),
+    wo: blankWo(),
   };
+}
+
+function blankWo() {
+  return { poNo: "", poDate: "", soNo: "", soDate: "", woNumber: "", qty: "" };
 }
 
 // Delivery / Google Workspace record — populated when a quote is finalized.
