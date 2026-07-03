@@ -164,7 +164,7 @@ function CaseTechDraw({ ID_L, ID_W, ID_H, BH, TH, OD_L, OD_W, OD_H, caseType, ha
   );
 }
 
-function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal }) {
+function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal, onUpdate }) {
   const c = useMemo(() => calcQuote(quote), [quote]);
 
   const fmtDate = (ds) => {
@@ -194,6 +194,22 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal }) {
   else if (thickness === 4)          caseType = "4MM R";
   else if (thickness === 2)          caseType = "2MM R";
   const isWO = caseType !== null;
+
+  // WO reference fields (PO / SO / WO number) — editable, persisted via onUpdate
+  const savedWo = quote.wo || {};
+  const [wo, setWoLocal] = React.useState({
+    poNo:     savedWo.poNo     || "",
+    poDate:   savedWo.poDate   || "",
+    soNo:     savedWo.soNo     || "",
+    soDate:   savedWo.soDate   || "",
+    woNumber: savedWo.woNumber || "",
+    qty:      savedWo.qty      || "",
+  });
+  const setWo = (patch) => {
+    const next = { ...wo, ...patch };
+    setWoLocal(next);
+    if (onUpdate) onUpdate({ wo: next });
+  };
 
   // Cosanta panel cut list
   const woPanels = (() => {
@@ -340,6 +356,37 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal }) {
               <div><span>Quantity</span><b>{qty} box{qty === 1 ? "" : "es"}</b></div>
               {quote.product.ref && <div><span>Drawing Ref</span><b className="mono">{quote.product.ref}</b></div>}
             </div>
+
+            {isWO && (
+              <div className="wo-ref-box no-print-border">
+                <div className="wo-ref-grid">
+                  <div className="wo-ref-cell">
+                    <span className="wo-ref-label">PO No.</span>
+                    <input className="wo-ref-input" value={wo.poNo} onChange={e => setWo({ poNo: e.target.value })} placeholder="—" />
+                  </div>
+                  <div className="wo-ref-cell">
+                    <span className="wo-ref-label">PO Date</span>
+                    <input className="wo-ref-input" type="date" value={wo.poDate} onChange={e => setWo({ poDate: e.target.value })} />
+                  </div>
+                  <div className="wo-ref-cell">
+                    <span className="wo-ref-label">SO No.</span>
+                    <input className="wo-ref-input" value={wo.soNo} onChange={e => setWo({ soNo: e.target.value })} placeholder="—" />
+                  </div>
+                  <div className="wo-ref-cell">
+                    <span className="wo-ref-label">SO Date</span>
+                    <input className="wo-ref-input" type="date" value={wo.soDate} onChange={e => setWo({ soDate: e.target.value })} />
+                  </div>
+                  <div className="wo-ref-cell">
+                    <span className="wo-ref-label">Work Order No.</span>
+                    <input className="wo-ref-input" value={wo.woNumber} onChange={e => setWo({ woNumber: e.target.value })} placeholder="—" />
+                  </div>
+                  <div className="wo-ref-cell">
+                    <span className="wo-ref-label">Quantity</span>
+                    <input className="wo-ref-input" type="number" min="1" value={wo.qty} onChange={e => setWo({ qty: e.target.value })} placeholder={String(qty)} />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="bom-section-title">1 · Case Geometry</div>
             <table className="bom-tbl bom-geo-tbl">
