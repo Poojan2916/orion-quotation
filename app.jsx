@@ -343,6 +343,7 @@ function App({ currentUser, onLogout }) {
             onEdit={() => openQuote(previewSource.id)}
             onCustomer={() => { setActiveId(previewSource.id); setView("preview"); }}
             onInternal={() => { setActiveId(previewSource.id); setView("internal"); }}
+            onUpdate={(patch) => updateQuote(previewSource.id, patch)}
           />
         )}
 
