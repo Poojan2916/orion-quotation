@@ -608,7 +608,7 @@ function blankWo() {
   return { poNo: "", poDate: "", soNo: "", soDate: "", woNumber: "", qty: "" };
 }
 
-// Delivery / Google Workspace record — populated when a quote is finalized.
+// Delivery record (Zoho Mail) — populated when a quote is emailed.
 function blankDelivery() {
   return {
     externalPdfName: "",
