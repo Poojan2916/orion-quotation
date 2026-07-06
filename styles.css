@@ -1291,3 +1291,17 @@ input[type="range"] {
     font-size: 11px;
   }
 }
+
+/* BOM rate-source note */
+.bom-rate-note {
+  font-size: 11px;
+  color: #7a6a30;
+  background: #fdf8e8;
+  border: 1px solid #e8d898;
+  border-radius: 4px;
+  padding: 5px 10px;
+  margin: 4px 0 10px;
+}
+@media print {
+  .bom-rate-note { background: transparent; border-color: #bbb; color: #666; }
+}
