@@ -631,6 +631,11 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onBom, onWo, mode, onUpda
             )}
 
             <div className="bom-section-title">4 · Bill of Materials</div>
+            {withPrices && (
+              <div className="bom-rate-note">
+                Rates shown are <b>quotation rates</b> — will switch to procurement rates once the purchase price list is uploaded.
+              </div>
+            )}
             {(() => {
               // Data-driven BOM rows. rate/amount are per box; amount = null → not costed.
               const rows = [];
