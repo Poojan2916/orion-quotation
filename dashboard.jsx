@@ -2,7 +2,7 @@
    Dashboard — saved quotations + stats
    ============================================================ */
 
-function Dashboard({ quotes, onNew, onOpen, onPreview, onInternal, onDelete, onDuplicate, onDeliver }) {
+function Dashboard({ quotes, onNew, onOpen, onPreview, onBom, onWo, onDelete, onDuplicate, onDeliver }) {
   const [q, setQ] = useState("");
 
   const enriched = useMemo(() =>
@@ -108,7 +108,8 @@ function Dashboard({ quotes, onNew, onOpen, onPreview, onInternal, onDelete, onD
                     <td>
                       <div className="row-actions" onClick={e => e.stopPropagation()}>
                         <button className="btn btn-subtle btn-sm" onClick={() => onPreview(quote.id)} title="Customer quote"><Icon name="eye" /></button>
-                        <button className="btn btn-subtle btn-sm" onClick={() => onInternal(quote.id)} title="Internal costing"><Icon name="layers" /></button>
+                        <button className="btn btn-subtle btn-sm" onClick={() => onBom(quote.id)} title="Bill of Materials (costed)"><Icon name="layers" /></button>
+                        <button className="btn btn-subtle btn-sm" onClick={() => onWo(quote.id)} title="Work Order (no pricing)"><Icon name="file" /></button>
                         <button className="btn btn-subtle btn-sm" onClick={() => onDeliver(quote.id)} title="Finalize & deliver"><Icon name="send" /></button>
                         <button className="btn btn-subtle btn-sm" onClick={() => onOpen(quote.id)} title="Edit"><Icon name="edit" /></button>
                         <button className="btn btn-subtle btn-sm" onClick={() => onDuplicate(quote.id)} title="Duplicate"><Icon name="copy" /></button>
