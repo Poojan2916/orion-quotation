@@ -633,14 +633,27 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onBom, onWo, mode, onUpda
             <div className="bom-section-title">4 · Bill of Materials</div>
             {withPrices && (
               <div className="bom-rate-note">
-                Rates shown are <b>quotation rates</b> — will switch to procurement rates once the purchase price list is uploaded.
+                Rates are <b>procurement (purchase) prices</b> where available. Rows marked <sup className="bom-rate-q">Q</sup> have no purchase price on file yet and use the quotation rate instead.
               </div>
             )}
             {(() => {
               // Data-driven BOM rows. rate/amount are per box; amount = null → not costed.
               const rows = [];
               const cat = (label) => rows.push({ isCat: true, label });
-              const row = (o) => rows.push(o);
+              // BOM pricing: prefer the procurement (purchase) rate; fall back to
+              // the quotation rate (marked Q) when no purchase price is on file.
+              const row = (o) => {
+                if (withPrices && o.rate != null) {
+                  const p = typeof procurementRate === "function" ? procurementRate(o.item) : null;
+                  if (p) {
+                    const qn = Number(o.qtyBox);
+                    rows.push({ ...o, rate: p.rate, amount: isFinite(qn) ? qn * p.rate : o.amount, src: "P" });
+                    return;
+                  }
+                  o = { ...o, src: o.rate ? "Q" : "" };
+                }
+                rows.push(o);
+              };
 
               cat("Panel");
               if (isWO) {
@@ -715,7 +728,7 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onBom, onWo, mode, onUpda
                         <td>{r.item}{r.note && <span className="mono bom-dim-note">{r.note}</span>}</td>
                         <td className="num">{r.unit}</td>
                         <td className="num">{r.qtyBox}</td>
-                        {withPrices && <td className="num">{r.rate ? inr(r.rate, 2) : "—"}</td>}
+                        {withPrices && <td className="num">{r.rate ? <>{inr(r.rate, 2)}{r.src === "Q" && <sup className="bom-rate-q">Q</sup>}</> : "—"}</td>}
                         {withPrices && <td className="num">{r.amount != null ? inr(r.amount, 0) : "—"}</td>}
                         <td className="num">{withPrices
                           ? (r.amount != null ? inr(r.amount * qty, 0) : "—")
