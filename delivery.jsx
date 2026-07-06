@@ -512,7 +512,7 @@ function DeliveryPanel({ quote, onUpdate, onBack }) {
                   <button className="btn btn-red btn-sm" onClick={genCustomer}><Icon name="download" /> Generate customer PDF</button>
                 </div>
                 <div className="pdf-card internal">
-                  <div className="pc-top"><Icon name="layers" /><span>Company / Internal</span></div>
+                  <div className="pc-top"><Icon name="layers" /><span>Company / BOM (costed)</span></div>
                   <code>{intName}</code>
                   <ul>
                     <li>Full panel, foam &amp; profile calculation</li>
