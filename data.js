@@ -605,7 +605,7 @@ function makeBlankQuote(seq) {
 }
 
 function blankWo() {
-  return { poNo: "", poDate: "", soNo: "", soDate: "", woNumber: "", qty: "" };
+  return { poNo: "", poDate: "", soNo: "", soDate: "", woNumber: "", qty: "", dispatchDate: "" };
 }
 
 // Delivery record (Zoho Mail) — populated when a quote is emailed.
