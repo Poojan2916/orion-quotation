@@ -164,8 +164,15 @@ function CaseTechDraw({ ID_L, ID_W, ID_H, BH, TH, OD_L, OD_W, OD_H, caseType, ha
   );
 }
 
-function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal, onUpdate }) {
+function BomSheet({ quote, onBack, onEdit, onCustomer, onBom, onWo, mode, onUpdate }) {
+  const withPrices = mode === "bom";
   const c = useMemo(() => calcQuote(quote), [quote]);
+
+  // "MDF Panel 4mm" + thickness 4 must not print as "MDF Panel 4mm 4mm"
+  const panelLabel = (matName, thk) =>
+    new RegExp("\\b" + thk + "\\s*mm\\b", "i").test(matName || "")
+      ? matName
+      : (matName || "Panel") + " " + thk + "mm";
 
   const fmtDate = (ds) => {
     if (!ds) return "—";
@@ -204,6 +211,7 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal, onUpdate }) {
     soDate:   savedWo.soDate   || "",
     woNumber: savedWo.woNumber || "",
     qty:      savedWo.qty      || "",
+    dispatchDate: savedWo.dispatchDate || "",
   });
   const setWo = (patch) => {
     const next = { ...wo, ...patch };
@@ -323,13 +331,13 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal, onUpdate }) {
         <div className="spacer" />
         <div className="view-toggle">
           <button onClick={onCustomer}>Customer</button>
-          <button onClick={onInternal}>Internal</button>
-          <button className="active">WO</button>
+          <button className={withPrices ? "active" : ""} onClick={withPrices ? undefined : onBom}>BOM</button>
+          <button className={!withPrices ? "active" : ""} onClick={!withPrices ? undefined : onWo}>WO</button>
         </div>
         <span className="tag-chip" style={{ background: "var(--surface-2)", color: "var(--navy)" }}>
-          {isWO ? "Production WO · " + caseType : "Production Work Order"}
+          {(withPrices ? "BOM · costed" : "Work Order") + (isWO ? " · " + caseType : "")}
         </span>
-        <button className="btn btn-primary" onClick={() => window.print()}><Icon name="download" /> Print WO</button>
+        <button className="btn btn-primary" onClick={() => window.print()}><Icon name="download" /> {withPrices ? "Print BOM" : "Print WO"}</button>
       </div>
 
       <div className="doc-wrap">
@@ -341,9 +349,9 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal, onUpdate }) {
                 <img src="assets/orion-logo.png" alt="Orion Flexipack" />
               </div>
               <div className="bom-title-wrap">
-                <h2>Work Order</h2>
+                <h2>{withPrices ? "Bill of Materials" : "Work Order"}</h2>
                 <div className="bom-tag">
-                  {isWO ? caseType + " · Cosanta formula · No pricing" : "Production use · No pricing"}
+                  {(isWO ? caseType + " · Cosanta formula" : "Production use") + (withPrices ? " · with costing" : " · No pricing")}
                 </div>
               </div>
             </div>
@@ -383,6 +391,10 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal, onUpdate }) {
                   <div className="wo-ref-cell">
                     <span className="wo-ref-label">Quantity</span>
                     <input className="wo-ref-input" type="number" min="1" value={wo.qty} onChange={e => setWo({ qty: e.target.value })} placeholder={String(qty)} />
+                  </div>
+                  <div className="wo-ref-cell">
+                    <span className="wo-ref-label">Dispatch Date</span>
+                    <input className="wo-ref-input" type="date" value={wo.dispatchDate} onChange={e => setWo({ dispatchDate: e.target.value })} />
                   </div>
                 </div>
               </div>
@@ -438,7 +450,7 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal, onUpdate }) {
             {isWO ? (
               <>
                 <div className="bom-section-title">
-                  {"2 · Panel Cutting List — " + c.acp.main.material + " " + thickness + "mm · " + caseType}
+                  {"2 · Panel Cutting List — " + panelLabel(c.acp.main.material, thickness) + " · " + caseType}
                 </div>
                 <table className="bom-tbl">
                   <thead>
@@ -474,7 +486,7 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal, onUpdate }) {
             ) : (
               <>
                 <div className="bom-section-title">
-                  {"2 · Panel Cutting List — " + c.acp.main.material + " " + thickness + "mm · cut margin +" + c.acp.cut + " mm"}
+                  {"2 · Panel Cutting List — " + panelLabel(c.acp.main.material, thickness) + " · cut margin +" + c.acp.cut + " mm"}
                 </div>
                 <table className="bom-tbl">
                   <thead>
@@ -619,125 +631,105 @@ function BomSheet({ quote, onBack, onEdit, onCustomer, onInternal, onUpdate }) {
             )}
 
             <div className="bom-section-title">4 · Bill of Materials</div>
-            <table className="bom-tbl bom-main-tbl">
-              <thead>
-                <tr>
-                  <th style={{ width: 86 }}>Category</th>
-                  <th>Item</th>
-                  <th className="num">Unit</th>
-                  <th className="num">Qty / box</th>
-                  <th className="num">{"Total × " + qty}</th>
-                </tr>
-              </thead>
-              <tbody>
+            {(() => {
+              // Data-driven BOM rows. rate/amount are per box; amount = null → not costed.
+              const rows = [];
+              const cat = (label) => rows.push({ isCat: true, label });
+              const row = (o) => rows.push(o);
 
-                <tr className="bom-cat-row"><td colSpan="5">Panel</td></tr>
-                {isWO ? (
-                  <tr>
-                    <td></td>
-                    <td>{c.acp.main.material + " " + thickness + "mm"}</td>
-                    <td className="num">sqft</td>
-                    <td className="num">{orderSqft}</td>
-                    <td className="num">{orderSqft * qty}</td>
-                  </tr>
-                ) : (
-                  <>
+              cat("Panel");
+              if (isWO) {
+                const rate = num(c.acp.main.finalRate);
+                row({ item: panelLabel(c.acp.main.material, thickness), unit: "sqft", qtyBox: orderSqft, rate, amount: orderSqft * rate });
+              } else {
+                const rate = num(c.acp.main.finalRate);
+                row({ item: panelLabel(c.acp.main.material, thickness), unit: "sqft", qtyBox: totalMainSqft.toFixed(2), rate, amount: totalMainSqft * rate });
+                if (c.acp.abs) {
+                  const aRate = num(c.acp.abs.finalRate);
+                  row({ item: "ABS Silver " + (num(quote.acp && quote.acp.absLayer && quote.acp.absLayer.thickness) || 2) + "mm", unit: "sqft", qtyBox: totalAbsSqft.toFixed(2), rate: aRate, amount: totalAbsSqft * aRate });
+                }
+              }
+
+              cat("Profile");
+              if (isWO) {
+                const mRate = num(c.profiles.mf.male);
+                const fRate = num(c.profiles.mf.female);
+                const rRate = num(c.profiles.edge.finalRate);
+                const lpRow = extras.find(r => /patti/i.test(r.name || ""));
+                const lpRate = lpRow ? num(lpRow.finalUnit) : 0;
+                row({ item: woProfiles.m, unit: "ft", qtyBox: woProfiles.mProBom, rate: mRate, amount: woProfiles.mProBom * mRate });
+                if (woProfiles.f) row({ item: woProfiles.f, unit: "ft", qtyBox: woProfiles.fProBom, rate: fRate, amount: woProfiles.fProBom * fRate });
+                if (woProfiles.r) row({ item: woProfiles.r, unit: "ft", qtyBox: woProfiles.rProBom, rate: rRate, amount: woProfiles.rProBom * rRate });
+                if (woProfiles.isR && woProfiles.lPattiBom > 0) row({ item: "L Patti 12mm", unit: "ft", qtyBox: woProfiles.lPattiBom, rate: lpRate, amount: lpRate ? woProfiles.lPattiBom * lpRate : null });
+              } else {
+                if (mf.ft > 0) row({ item: mf.set || "MF Profile Set", unit: "ft", qtyBox: mf.ft, rate: num(mf.combined) + num(mf.margin), amount: num(c.profiles.mfCost) });
+                if (edge.ft > 0) row({ item: edge.option || "Edge Profile", unit: "ft", qtyBox: edge.ft, rate: num(edge.finalRate), amount: num(c.profiles.edgeCost) });
+                extras.forEach(r => row({ item: r.name, unit: "ft", qtyBox: r.ft, rate: num(r.finalUnit), amount: num(r.total) }));
+              }
+
+              if (isWO && woBox) {
+                cat("Packaging Box");
+                row({ item: "Cardboard box", note: " (" + woBox.L + " x " + woBox.W + " mm)", unit: "pc", qtyBox: 1, rate: null, amount: null });
+              }
+
+              if (foamLayers.length > 0 || customFoamRows.length > 0) cat("Foam");
+              foamLayers.forEach(l => row({ item: l.type + " " + l.thk + "mm", unit: "pc", qtyBox: 1, rate: null, amount: num(l.cost) }));
+              customFoamRows.forEach(r => row({ item: r.name, note: " (" + r.type + " " + num(r.thickness) + "mm · " + num(r.length) + "x" + num(r.width) + " mm)", unit: "pc", qtyBox: num(r.qty), rate: num(r.pieceCost), amount: num(r.total) }));
+
+              if (accRows.length > 0) cat("Hardware & Accessories");
+              accRows.forEach(r => row({ acc: accCat(r.name), item: r.name, unit: r.unit, qtyBox: num(r.qty), rate: num(r.finalUnit), amount: num(r.total) }));
+
+              cat("Production");
+              row({ item: "Labour", unit: "—", qtyBox: 1, rate: null, amount: num(c.labourCost) });
+              if (!isWO && quote.shipping && quote.shipping !== "none") {
+                row({ item: "Packaging / Shipping box", unit: "—", qtyBox: 1, rate: null, amount: null });
+              }
+
+              const COLS = withPrices ? 7 : 5;
+              const boxTotal = rows.reduce((s, r) => s + (r.amount || 0), 0);
+
+              return (
+                <table className="bom-tbl bom-main-tbl">
+                  <thead>
                     <tr>
-                      <td></td>
-                      <td>{c.acp.main.material + " " + thickness + "mm"}</td>
-                      <td className="num">sqft</td>
-                      <td className="num">{totalMainSqft.toFixed(2)}</td>
-                      <td className="num">{(totalMainSqft * qty).toFixed(2)}</td>
+                      <th style={{ width: 86 }}>Category</th>
+                      <th>Item</th>
+                      <th className="num">Unit</th>
+                      <th className="num">Qty / box</th>
+                      {withPrices && <th className="num">Rate</th>}
+                      {withPrices && <th className="num">Amount / box</th>}
+                      <th className="num">{(withPrices ? "Amount" : "Total") + " × " + qty}</th>
                     </tr>
-                    {c.acp.abs && (
-                      <tr>
-                        <td></td>
-                        <td>{"ABS Silver " + (num(quote.acp && quote.acp.absLayer && quote.acp.absLayer.thickness) || 2) + "mm"}</td>
-                        <td className="num">sqft</td>
-                        <td className="num">{totalAbsSqft.toFixed(2)}</td>
-                        <td className="num">{(totalAbsSqft * qty).toFixed(2)}</td>
+                  </thead>
+                  <tbody>
+                    {rows.map((r, i) => r.isCat ? (
+                      <tr key={i} className="bom-cat-row"><td colSpan={COLS}>{r.label}</td></tr>
+                    ) : (
+                      <tr key={i}>
+                        <td className="bom-acc-cat">{r.acc || ""}</td>
+                        <td>{r.item}{r.note && <span className="mono bom-dim-note">{r.note}</span>}</td>
+                        <td className="num">{r.unit}</td>
+                        <td className="num">{r.qtyBox}</td>
+                        {withPrices && <td className="num">{r.rate ? inr(r.rate, 2) : "—"}</td>}
+                        {withPrices && <td className="num">{r.amount != null ? inr(r.amount, 0) : "—"}</td>}
+                        <td className="num">{withPrices
+                          ? (r.amount != null ? inr(r.amount * qty, 0) : "—")
+                          : (typeof r.qtyBox === "number" ? r.qtyBox * qty : (Number(r.qtyBox) * qty).toFixed(2))}</td>
                       </tr>
-                    )}
-                  </>
-                )}
-
-                <tr className="bom-cat-row"><td colSpan="5">Profile</td></tr>
-                {isWO ? (
-                  <>
-                    <tr><td></td><td>{woProfiles.m}</td><td className="num">ft</td><td className="num">{woProfiles.mProBom}</td><td className="num">{woProfiles.mProBom * qty}</td></tr>
-                    {woProfiles.f && <tr><td></td><td>{woProfiles.f}</td><td className="num">ft</td><td className="num">{woProfiles.fProBom}</td><td className="num">{woProfiles.fProBom * qty}</td></tr>}
-                    {woProfiles.r && <tr><td></td><td>{woProfiles.r}</td><td className="num">ft</td><td className="num">{woProfiles.rProBom}</td><td className="num">{woProfiles.rProBom * qty}</td></tr>}
-                    {woProfiles.isR && woProfiles.lPattiBom > 0 && <tr><td></td><td>L Patti 12mm</td><td className="num">ft</td><td className="num">{woProfiles.lPattiBom}</td><td className="num">{woProfiles.lPattiBom * qty}</td></tr>}
-                  </>
-                ) : (
-                  <>
-                    {mf.ft > 0 && <tr><td></td><td>{mf.set || "MF Profile Set"}</td><td className="num">ft</td><td className="num">{mf.ft}</td><td className="num">{mf.ft * qty}</td></tr>}
-                    {edge.ft > 0 && <tr><td></td><td>{edge.option || "Edge Profile"}</td><td className="num">ft</td><td className="num">{edge.ft}</td><td className="num">{edge.ft * qty}</td></tr>}
-                    {extras.map((r, i) => <tr key={i}><td></td><td>{r.name}</td><td className="num">ft</td><td className="num">{r.ft}</td><td className="num">{r.ft * qty}</td></tr>)}
-                    {mf.ft === 0 && edge.ft === 0 && extras.length === 0 && <tr><td></td><td colSpan="4" className="bom-empty">No profiles</td></tr>}
-                  </>
-                )}
-
-                {isWO && woBox && (
-                  <>
-                    <tr className="bom-cat-row"><td colSpan="5">Packaging Box</td></tr>
-                    <tr>
-                      <td></td>
-                      <td>{"Cardboard box"}<span className="mono bom-dim-note">{" (" + woBox.L + " x " + woBox.W + " mm)"}</span></td>
-                      <td className="num">pc</td>
-                      <td className="num">1</td>
-                      <td className="num">{qty}</td>
-                    </tr>
-                  </>
-                )}
-
-                {(foamLayers.length > 0 || customFoamRows.length > 0) && (
-                  <tr className="bom-cat-row"><td colSpan="5">Foam</td></tr>
-                )}
-                {foamLayers.map((l, i) => (
-                  <tr key={i}>
-                    <td></td>
-                    <td>{l.type + " " + l.thk + "mm"}</td>
-                    <td className="num">pc</td>
-                    <td className="num">1</td>
-                    <td className="num">{qty}</td>
-                  </tr>
-                ))}
-                {customFoamRows.map((r, i) => (
-                  <tr key={"cfa"+i}>
-                    <td></td>
-                    <td>{r.name}<span className="mono bom-dim-note">{" (" + r.type + " " + num(r.thickness) + "mm · " + num(r.length) + "x" + num(r.width) + " mm)"}</span></td>
-                    <td className="num">pc</td>
-                    <td className="num">{num(r.qty)}</td>
-                    <td className="num">{num(r.qty) * qty}</td>
-                  </tr>
-                ))}
-
-                {accRows.length > 0 && <tr className="bom-cat-row"><td colSpan="5">{"Hardware & Accessories"}</td></tr>}
-                {accRows.map((r, i) => (
-                  <tr key={i}>
-                    <td className="bom-acc-cat">{accCat(r.name)}</td>
-                    <td>{r.name}</td>
-                    <td className="num">{r.unit}</td>
-                    <td className="num">{num(r.qty)}</td>
-                    <td className="num">{num(r.qty) * qty}</td>
-                  </tr>
-                ))}
-
-                <tr className="bom-cat-row"><td colSpan="5">Production</td></tr>
-                <tr>
-                  <td></td><td>Labour</td>
-                  <td className="num">{"—"}</td><td className="num">1</td><td className="num">{qty}</td>
-                </tr>
-                {!isWO && quote.shipping && quote.shipping !== "none" && (
-                  <tr>
-                    <td></td><td>Packaging / Shipping box</td>
-                    <td className="num">{"—"}</td><td className="num">1</td><td className="num">{qty}</td>
-                  </tr>
-                )}
-
-              </tbody>
-            </table>
+                    ))}
+                  </tbody>
+                  {withPrices && (
+                    <tfoot>
+                      <tr>
+                        <td colSpan={COLS - 2}><b>Material cost total</b> <span className="bom-dim-note">(cost basis · excludes margins, shipping & GST)</span></td>
+                        <td className="num"><b>{"Rs " + inr(boxTotal, 0)}</b></td>
+                        <td className="num"><b>{"Rs " + inr(boxTotal * qty, 0)}</b></td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              );
+            })()}
 
             {c.weightPerBox > 0 && (
               <div className="bom-weight">
