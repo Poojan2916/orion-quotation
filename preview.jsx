@@ -288,7 +288,7 @@ function CaseBoxDiagram({ odL, odW, odH, bh, hardware }) {
 }
 
 
-function Preview({ quote, onBack, onEdit, onInternal, onDeliver, onBom }) {
+function Preview({ quote, onBack, onEdit, onBom, onWo, onDeliver }) {
   const c = useMemo(() => calcQuote(quote), [quote]);
   const fmtDate = (d) => new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
   const cu = quote.customer;
@@ -326,8 +326,8 @@ function Preview({ quote, onBack, onEdit, onInternal, onDeliver, onBom }) {
         <div className="spacer" />
         <div className="view-toggle">
           <button className="active">Customer</button>
-          <button onClick={onInternal}>Internal</button>
           <button onClick={onBom}>BOM</button>
+          <button onClick={onWo}>WO</button>
         </div>
         <span className="tag-chip">{quote.quoteNo}</span>
         {onDeliver && <button className="btn btn-primary" onClick={onDeliver}><Icon name="send" /> Finalize &amp; Deliver</button>}
