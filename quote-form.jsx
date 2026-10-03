@@ -139,9 +139,8 @@ function PanelBreakdownTable({ rows, cut, editableQty, onQty, rawQty, showPerFoo
             <th className="num">Cut +{cut} (mm)</th>
             <th className="num">Qty</th>
             <th className="num">Pcs / sheet</th>
-            {showPerFoot && <th className="num">Dim ft</th>}
+            {showPerFoot && <th className="num">Used ft</th>}
             {showPerFoot && <th className="num">₹/ft</th>}
-            {showPerFoot && <th className="num">Bill ft (+5)</th>}
             <th className="num">Cost / pc</th>
             <th className="num">Total</th>
           </tr>
@@ -160,9 +159,8 @@ function PanelBreakdownTable({ rows, cut, editableQty, onQty, rawQty, showPerFoo
                   : <span className="mono">{r.qty}</span>}
               </td>
               <td className="num mono">{r.fit || <span style={{ color: "var(--red)" }}>—</span>}</td>
-              {showPerFoot && <td className="num mono">{r.dimFt ? r.dimFt.toFixed(2) : "—"}</td>}
-              {showPerFoot && <td className="num mono">₹{r.perFootCost ? inr(r.perFootCost, 0) : "—"}</td>}
               {showPerFoot && <td className="num mono">{r.billableFt ? r.billableFt.toFixed(2) : "—"}</td>}
+              {showPerFoot && <td className="num mono">₹{r.perFootCost ? inr(r.perFootCost, 0) : "—"}</td>}
               <td className="num mono" style={{ color: "var(--ink-2)" }}>₹{inr(r.costPerPiece, 0)}</td>
               <td className="num row-total">₹{inr(r.cost, 0)}</td>
             </tr>
