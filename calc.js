@@ -52,15 +52,11 @@ function calcPanelLayer(cfg, panels, caseDims, cut) {
     const cutA = a + cut;
     const cutB = b + cut;
     const fit = piecesPerSheet(cutA, cutB, sl, sw);
-    const yieldCostPerPiece = fit > 0 ? sheetCost / fit : sheetCost;
-    const dimFt = Math.max(cutA, cutB) / MM_PER_FT;
-    const perFootCost = dimFt > 0 ? yieldCostPerPiece / dimFt : 0;
-    const billableFt = dimFt + 5;
-    const costPerPiece = perFootCost * billableFt;
+    const costPerPiece = fit > 0 ? sheetCost / fit : sheetCost;
     const costRaw = costPerPiece * qty;
     const cost = Math.round(costRaw);
     const sheetsUsed = fit > 0 ? qty / fit : qty;
-    return { key: p.key, label: cat.label, a, b, cutA, cutB, qty, fit, yieldCostPerPiece, dimFt, perFootCost, billableFt, costPerPiece, costRaw, cost, sheetsUsed };
+    return { key: p.key, label: cat.label, a, b, cutA, cutB, qty, fit, costPerPiece, costRaw, cost, sheetsUsed };
   });
   // Total = sum of UNROUNDED category costs, rounded once (matches Excel master sheet).
   const cost = Math.round(rows.reduce((s, r) => s + r.costRaw, 0));
@@ -87,13 +83,16 @@ function calcAcp(quote) {
   }
   // minSqft: if actual used sqft < user-set minimum, bill for the minimum instead
   const actualUsedSqft = main.rows.reduce((s, r) => s + r.cutA * r.cutB * r.qty, 0) / SQMM_PER_SQFT;
+  const bufferSqft = 5;
+  const adjustedSqft = actualUsedSqft + bufferSqft;
+  const adjustedCost = Math.round(adjustedSqft * main.finalRate);
   const minSqft = num(quote.acp.minSqft) || 0;
-  const billedSqft = minSqft > actualUsedSqft ? minSqft : actualUsedSqft;
-  const minSqftTopup = minSqft > actualUsedSqft ? Math.round((minSqft - actualUsedSqft) * main.finalRate) : 0;
-  const cost = main.cost + (abs ? abs.cost : 0) + minSqftTopup;
+  const billedSqft = minSqft > adjustedSqft ? minSqft : adjustedSqft;
+  const minSqftTopup = minSqft > adjustedSqft ? Math.round((minSqft - adjustedSqft) * main.finalRate) : 0;
+  const cost = adjustedCost + (abs ? abs.cost : 0) + minSqftTopup;
   const totalSheets = main.totalSheets + (abs ? abs.totalSheets : 0);
   // Spread main for backward-compatible fields; cost/totalSheets are the COMBINED totals.
-  return { ...main, cut, main, abs, cost, totalSheets, actualUsedSqft, billedSqft, minSqftTopup };
+  return { ...main, cut, main, abs, cost, totalSheets, actualUsedSqft, adjustedSqft, bufferSqft, billedSqft, minSqftTopup };
 }
 
 // ---- Foam: a list of layers, EACH using the same 5-category sheet-cut logic ----
@@ -177,15 +176,11 @@ function calcCustomPanelAddons(quote) {
     const cutA = length + cutMargin;
     const cutB = width + cutMargin;
     const fit = piecesPerSheet(cutA, cutB, sheetL, sheetW);
-    const yieldCostPerPiece = fit > 0 ? sheetCost / fit : sheetCost;
-    const dimFt = Math.max(cutA, cutB) / MM_PER_FT;
-    const perFootCost = dimFt > 0 ? yieldCostPerPiece / dimFt : 0;
-    const billableFt = dimFt + 5;
-    const costPerPiece = perFootCost * billableFt;
+    const costPerPiece = fit > 0 ? sheetCost / fit : sheetCost;
     const costRaw = costPerPiece * qty;
     const total = Math.round(costRaw);
 
-    return { ...row, length, width, thickness, qty, rate, margin, overlay, sheetW, sheetL, sheetSqft, finalRate, sheetCost, cutMargin, cutA, cutB, fit, yieldCostPerPiece, dimFt, perFootCost, billableFt, costPerPiece, costRaw, total };
+    return { ...row, length, width, thickness, qty, rate, margin, overlay, sheetW, sheetL, sheetSqft, finalRate, sheetCost, cutMargin, cutA, cutB, fit, costPerPiece, costRaw, total };
   });
   const cost = rows.reduce((s, r) => s + r.costRaw, 0);
   return { rows, cost: Math.round(cost) };

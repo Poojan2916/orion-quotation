@@ -128,7 +128,7 @@ function DimensionsSection({ quote, patchDim }) {
 }
 
 /* ---------- Shared panel breakdown table (same for every material) ---------- */
-function PanelBreakdownTable({ rows, cut, editableQty, onQty, rawQty, showPerFoot }) {
+function PanelBreakdownTable({ rows, cut, editableQty, onQty, rawQty }) {
   return (
     <div className="table-wrap">
       <table className="tbl">
@@ -139,8 +139,6 @@ function PanelBreakdownTable({ rows, cut, editableQty, onQty, rawQty, showPerFoo
             <th className="num">Cut +{cut} (mm)</th>
             <th className="num">Qty</th>
             <th className="num">Pcs / sheet</th>
-            {showPerFoot && <th className="num">Used ft</th>}
-            {showPerFoot && <th className="num">₹/ft</th>}
             <th className="num">Cost / pc</th>
             <th className="num">Total</th>
           </tr>
@@ -159,8 +157,6 @@ function PanelBreakdownTable({ rows, cut, editableQty, onQty, rawQty, showPerFoo
                   : <span className="mono">{r.qty}</span>}
               </td>
               <td className="num mono">{r.fit || <span style={{ color: "var(--red)" }}>—</span>}</td>
-              {showPerFoot && <td className="num mono">{r.billableFt ? r.billableFt.toFixed(2) : "—"}</td>}
-              {showPerFoot && <td className="num mono">₹{r.perFootCost ? inr(r.perFootCost, 0) : "—"}</td>}
               <td className="num mono" style={{ color: "var(--ink-2)" }}>₹{inr(r.costPerPiece, 0)}</td>
               <td className="num row-total">₹{inr(r.cost, 0)}</td>
             </tr>
@@ -239,18 +235,15 @@ function AcpSection({ quote, patchAcp, patch, calc, customCalc }) {
         )}
 
         <PanelBreakdownTable rows={calc.rows} cut={calc.cut} editableQty onQty={setPanelQty}
-          rawQty={k => quote.acp.panels.find(p => p.key === k).qty} showPerFoot />
+          rawQty={k => quote.acp.panels.find(p => p.key === k).qty} />
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
           <span className="subtotal-pill">Final rate <b>₹{calc.finalRate.toFixed(0)}/sqft</b></span>
           <span className="subtotal-pill">Sheet cost <b>₹{inr(calc.sheetCost, 0)}</b></span>
           <span className="subtotal-pill">{calc.sheetSqft} sqft × ₹{calc.finalRate.toFixed(0)}</span>
-          {calc.minSqftTopup > 0
-            ? <span className="subtotal-pill" style={{ background: "var(--amber,#fff3cd)", color: "#7a5800" }}>Used <b>{calc.actualUsedSqft.toFixed(2)} sqft</b> → Billing <b>{calc.billedSqft.toFixed(2)} sqft</b></span>
-            : <span className="subtotal-pill" style={{ background: "var(--blue-tint,#e8f0ff)", color: "var(--navy)" }}>Used <b>{((calc.rows||[]).reduce((s,r)=>s+r.cutA*r.cutB*r.qty,0)/SQMM_PER_SQFT).toFixed(2)} sqft</b></span>
-          }
+          <span className="subtotal-pill" style={{ background: "var(--blue-tint,#e8f0ff)", color: "var(--navy)" }}>Used <b>{calc.actualUsedSqft.toFixed(2)} sqft</b> + 5 = <b>{calc.adjustedSqft.toFixed(2)} sqft</b></span>
           <div style={{ flex: 1 }} />
-          <span className="subtotal-pill" style={{ background: "var(--navy)", color: "#fff" }}>{acp.material} Cost <b style={{ color: "#fff" }}>₹{inr(calc.main.cost, 0)}</b></span>
+          <span className="subtotal-pill" style={{ background: "var(--navy)", color: "#fff" }}>{acp.material} Cost <b style={{ color: "#fff" }}>₹{inr(calc.cost, 0)}</b></span>
         </div>
 
         {calc.abs && (
@@ -354,7 +347,7 @@ function AbsLayer({ acp, patch, calc }) {
           <Field label="Margin" opt="optional"><NumInput value={al.margin} unit="₹" placeholder="0" onChange={v => setAbs("margin", v)} /></Field>
         </div>
       </div>
-      <PanelBreakdownTable rows={calc.rows} cut={acp.cutMargin} editableQty={false} showPerFoot />
+      <PanelBreakdownTable rows={calc.rows} cut={acp.cutMargin} editableQty={false} />
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
         <span className="subtotal-pill">Final rate <b>₹{calc.finalRate.toFixed(0)}/sqft</b></span>
         <span className="subtotal-pill">Sheet {inr(calc.sheetW, 0)}×{inr(calc.sheetL, 0)} = {calc.sheetSqft} sqft</span>
