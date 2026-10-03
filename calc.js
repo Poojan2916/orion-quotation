@@ -52,11 +52,15 @@ function calcPanelLayer(cfg, panels, caseDims, cut) {
     const cutA = a + cut;
     const cutB = b + cut;
     const fit = piecesPerSheet(cutA, cutB, sl, sw);
-    const costPerPiece = fit > 0 ? sheetCost / fit : sheetCost;
-    const costRaw = costPerPiece * qty;          // unrounded category cost
-    const cost = Math.round(costRaw);            // rounded for display
+    const yieldCostPerPiece = fit > 0 ? sheetCost / fit : sheetCost;
+    const dimFt = Math.max(cutA, cutB) / MM_PER_FT;
+    const perFootCost = dimFt > 0 ? yieldCostPerPiece / dimFt : 0;
+    const billableFt = dimFt + 5;
+    const costPerPiece = perFootCost * billableFt;
+    const costRaw = costPerPiece * qty;
+    const cost = Math.round(costRaw);
     const sheetsUsed = fit > 0 ? qty / fit : qty;
-    return { key: p.key, label: cat.label, a, b, cutA, cutB, qty, fit, costPerPiece, costRaw, cost, sheetsUsed };
+    return { key: p.key, label: cat.label, a, b, cutA, cutB, qty, fit, yieldCostPerPiece, dimFt, perFootCost, billableFt, costPerPiece, costRaw, cost, sheetsUsed };
   });
   // Total = sum of UNROUNDED category costs, rounded once (matches Excel master sheet).
   const cost = Math.round(rows.reduce((s, r) => s + r.costRaw, 0));
@@ -173,11 +177,15 @@ function calcCustomPanelAddons(quote) {
     const cutA = length + cutMargin;
     const cutB = width + cutMargin;
     const fit = piecesPerSheet(cutA, cutB, sheetL, sheetW);
-    const costPerPiece = fit > 0 ? sheetCost / fit : sheetCost;
+    const yieldCostPerPiece = fit > 0 ? sheetCost / fit : sheetCost;
+    const dimFt = Math.max(cutA, cutB) / MM_PER_FT;
+    const perFootCost = dimFt > 0 ? yieldCostPerPiece / dimFt : 0;
+    const billableFt = dimFt + 5;
+    const costPerPiece = perFootCost * billableFt;
     const costRaw = costPerPiece * qty;
     const total = Math.round(costRaw);
 
-    return { ...row, length, width, thickness, qty, rate, margin, overlay, sheetW, sheetL, sheetSqft, finalRate, sheetCost, cutMargin, cutA, cutB, fit, costPerPiece, costRaw, total };
+    return { ...row, length, width, thickness, qty, rate, margin, overlay, sheetW, sheetL, sheetSqft, finalRate, sheetCost, cutMargin, cutA, cutB, fit, yieldCostPerPiece, dimFt, perFootCost, billableFt, costPerPiece, costRaw, total };
   });
   const cost = rows.reduce((s, r) => s + r.costRaw, 0);
   return { rows, cost: Math.round(cost) };

@@ -42,9 +42,9 @@ function QuoteForm({ quote, onChange, onSave, onPreview, onBack }) {
           <CustomerSection quote={quote} patchCustomer={patchCustomer} patchProduct={patchProduct} patch={patch} />
           <DimensionsSection quote={quote} patchDim={patchDim} />
           <AcpSection quote={quote} patchAcp={patchAcp} patch={patch} calc={c.acp} customCalc={c.customPanel} />
-          <FoamSection quote={quote} patch={patch} calc={c.foam} customCalc={c.customFoam} />
           <ProfilesSection quote={quote} patch={patch} calc={c.profiles} />
           <AccessoriesSection quote={quote} patch={patch} calc={c.acc} />
+          <FoamSection quote={quote} patch={patch} calc={c.foam} customCalc={c.customFoam} />
           <CustomerDisplaySection quote={quote} patch={patch} />
           <LabourSection quote={quote} patchLabour={patchLabour} total={c.labourCost} />
           <OrderSection quote={quote} patch={patch} calc={c} />
@@ -128,7 +128,7 @@ function DimensionsSection({ quote, patchDim }) {
 }
 
 /* ---------- Shared panel breakdown table (same for every material) ---------- */
-function PanelBreakdownTable({ rows, cut, editableQty, onQty, rawQty }) {
+function PanelBreakdownTable({ rows, cut, editableQty, onQty, rawQty, showPerFoot }) {
   return (
     <div className="table-wrap">
       <table className="tbl">
@@ -139,6 +139,9 @@ function PanelBreakdownTable({ rows, cut, editableQty, onQty, rawQty }) {
             <th className="num">Cut +{cut} (mm)</th>
             <th className="num">Qty</th>
             <th className="num">Pcs / sheet</th>
+            {showPerFoot && <th className="num">Dim ft</th>}
+            {showPerFoot && <th className="num">₹/ft</th>}
+            {showPerFoot && <th className="num">Bill ft (+5)</th>}
             <th className="num">Cost / pc</th>
             <th className="num">Total</th>
           </tr>
@@ -157,6 +160,9 @@ function PanelBreakdownTable({ rows, cut, editableQty, onQty, rawQty }) {
                   : <span className="mono">{r.qty}</span>}
               </td>
               <td className="num mono">{r.fit || <span style={{ color: "var(--red)" }}>—</span>}</td>
+              {showPerFoot && <td className="num mono">{r.dimFt ? r.dimFt.toFixed(2) : "—"}</td>}
+              {showPerFoot && <td className="num mono">₹{r.perFootCost ? inr(r.perFootCost, 0) : "—"}</td>}
+              {showPerFoot && <td className="num mono">{r.billableFt ? r.billableFt.toFixed(2) : "—"}</td>}
               <td className="num mono" style={{ color: "var(--ink-2)" }}>₹{inr(r.costPerPiece, 0)}</td>
               <td className="num row-total">₹{inr(r.cost, 0)}</td>
             </tr>
@@ -235,7 +241,7 @@ function AcpSection({ quote, patchAcp, patch, calc, customCalc }) {
         )}
 
         <PanelBreakdownTable rows={calc.rows} cut={calc.cut} editableQty onQty={setPanelQty}
-          rawQty={k => quote.acp.panels.find(p => p.key === k).qty} />
+          rawQty={k => quote.acp.panels.find(p => p.key === k).qty} showPerFoot />
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
           <span className="subtotal-pill">Final rate <b>₹{calc.finalRate.toFixed(0)}/sqft</b></span>
@@ -350,7 +356,7 @@ function AbsLayer({ acp, patch, calc }) {
           <Field label="Margin" opt="optional"><NumInput value={al.margin} unit="₹" placeholder="0" onChange={v => setAbs("margin", v)} /></Field>
         </div>
       </div>
-      <PanelBreakdownTable rows={calc.rows} cut={acp.cutMargin} editableQty={false} />
+      <PanelBreakdownTable rows={calc.rows} cut={acp.cutMargin} editableQty={false} showPerFoot />
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
         <span className="subtotal-pill">Final rate <b>₹{calc.finalRate.toFixed(0)}/sqft</b></span>
         <span className="subtotal-pill">Sheet {inr(calc.sheetW, 0)}×{inr(calc.sheetL, 0)} = {calc.sheetSqft} sqft</span>
@@ -396,7 +402,7 @@ function FoamSection({ quote, patch, calc, customCalc }) {
 
   return (
     <div className="card section-card">
-      <div className="section-head"><span className="num">4</span><h3>Foam Inserts</h3>
+      <div className="section-head"><span className="num">6</span><h3>Foam Inserts</h3>
         <span className="hint">5 categories per layer · sheet cost = W·L·thk·rate + margin + adhesive</span>
       </div>
       <div className="section-body" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -507,11 +513,20 @@ function FoamSection({ quote, patch, calc, customCalc }) {
 
 /* ---------- 5. Accessories ---------- */
 function AccessoriesSection({ quote, patch, calc }) {
+  const [cornerFilter, setCornerFilter] = useState("all");
   const setRow = (id, k, v) => patch({ accessories: quote.accessories.map(a => a.id === id ? { ...a, [k]: v } : a) });
   const delRow = (id) => patch({ accessories: quote.accessories.filter(a => a.id !== id) });
   // Add a new row pre-seeded to a specific group's first preset.
+  const filterCornerPresets = (presets) => {
+    if (cornerFilter === "all") return presets;
+    return presets.filter(p => {
+      const n = p.name.toLowerCase();
+      return n.includes(cornerFilter + "mm") || n.includes(cornerFilter + " mm");
+    });
+  };
   const addRowForGroup = (groupLabel) => {
-    const groupPresets = SETTINGS.accessories.filter(p => groupOf(p.name) === groupLabel);
+    let groupPresets = SETTINGS.accessories.filter(p => groupOf(p.name) === groupLabel);
+    if (groupLabel === "Corner") groupPresets = filterCornerPresets(groupPresets);
     const preset = groupPresets[0] || { name: "Custom item", unit: "pc", basePrice: 0, weightKg: "" };
     patch({ accessories: [...quote.accessories, { id: uid("a"), name: preset.name, unit: preset.unit || "pc", qty: 1, basePrice: preset.basePrice || 0, weightKg: preset.weightKg || "", margin: "" }] });
   };
@@ -549,7 +564,8 @@ function AccessoriesSection({ quote, patch, calc }) {
 
   const renderRow = (r, groupLabel) => {
     // Filter the dropdown to only show presets that belong to this group.
-    const groupPresets = SETTINGS.accessories.filter(p => groupOf(p.name) === groupLabel);
+    let groupPresets = SETTINGS.accessories.filter(p => groupOf(p.name) === groupLabel);
+    if (groupLabel === "Corner") groupPresets = filterCornerPresets(groupPresets);
     const inGroupPreset = groupPresets.some(p => p.name === r.name);
     return (
       <tr key={r.id}>
@@ -580,7 +596,7 @@ function AccessoriesSection({ quote, patch, calc }) {
 
   return (
     <div className="card section-card">
-      <div className="section-head"><span className="num">6</span><h3>Accessories &amp; Hardware</h3>
+      <div className="section-head"><span className="num">5</span><h3>Accessories &amp; Hardware</h3>
         <span className="hint">grouped by category set in Settings → Section H</span>
       </div>
       <div className="table-wrap">
@@ -600,7 +616,19 @@ function AccessoriesSection({ quote, patch, calc }) {
           <tbody>
             {grouped.map(g => (
               <React.Fragment key={g.label}>
-                <tr className="acc-group-row"><td colSpan="8">{g.label}</td></tr>
+                <tr className="acc-group-row"><td colSpan="8">
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span>{g.label}</span>
+                    {g.label === "Corner" && (
+                      <div className="segmented" style={{ display: "flex", marginLeft: "auto" }}>
+                        {["all", "2", "4", "9"].map(v => (
+                          <button key={v} className={cornerFilter === v ? "active" : ""} style={{ padding: "2px 10px", fontSize: 12 }}
+                            onClick={() => setCornerFilter(v)}>{v === "all" ? "All" : v + "mm"}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </td></tr>
                 {g.rows.map(r => renderRow(r, g.label))}
                 <tr><td colSpan="8" style={{ padding: "4px 6px 12px" }}>
                   <button className="btn-addrow" style={{ fontSize: 12 }} onClick={() => addRowForGroup(g.label)}><Icon name="plus" /> Add {g.label.toLowerCase()}</button>
@@ -610,7 +638,19 @@ function AccessoriesSection({ quote, patch, calc }) {
             {/* Show groups that have no rows yet so users can add to them */}
             {groupOrder.filter(label => !grouped.some(g => g.label === label)).map(label => (
               <React.Fragment key={label}>
-                <tr className="acc-group-row"><td colSpan="8">{label}</td></tr>
+                <tr className="acc-group-row"><td colSpan="8">
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span>{label}</span>
+                    {label === "Corner" && (
+                      <div className="segmented" style={{ display: "flex", marginLeft: "auto" }}>
+                        {["all", "2", "4", "9"].map(v => (
+                          <button key={v} className={cornerFilter === v ? "active" : ""} style={{ padding: "2px 10px", fontSize: 12 }}
+                            onClick={() => setCornerFilter(v)}>{v === "all" ? "All" : v + "mm"}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </td></tr>
                 <tr><td colSpan="8" style={{ padding: "4px 6px 12px" }}>
                   <button className="btn-addrow" style={{ fontSize: 12 }} onClick={() => addRowForGroup(label)}><Icon name="plus" /> Add {label.toLowerCase()}</button>
                 </td></tr>
@@ -717,7 +757,7 @@ function ProfilesSection({ quote, patch, calc }) {
 
   return (
     <div className="card section-card">
-      <div className="section-head"><span className="num">5</span><h3>Profiles</h3>
+      <div className="section-head"><span className="num">4</span><h3>Profiles</h3>
         <span className="hint">per running foot · ceil to whole ft</span>
       </div>
       <div className="section-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
