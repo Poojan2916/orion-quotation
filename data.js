@@ -249,7 +249,8 @@ function isCustomerHiddenAccessoryName(name) {
     n.includes("corner set") ||
     n.includes("regular corner") ||
     n.includes("ball corner") ||
-    n.includes("dl profile corner")
+    n.includes("dl profile corner") ||
+    n.includes("rivet")
   );
 }
 function customerVisibleAccessoryRows(rows) {
