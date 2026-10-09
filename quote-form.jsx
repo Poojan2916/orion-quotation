@@ -258,11 +258,7 @@ function AcpSection({ quote, patchAcp, patch, calc, customCalc, caseType }) {
           </Field>
           <Field label="Sheet Width"><NumInput value={acp.sheetW} unit="mm" onChange={v => patchAcp("sheetW", v)} /></Field>
           <Field label="Sheet Length"><NumInput value={acp.sheetL} unit="mm" onChange={v => patchAcp("sheetL", v)} /></Field>
-          <Field label="Thickness">
-            <select value={acp.thickness} onChange={e => patchAcp("thickness", parseFloat(e.target.value))}>
-              {(() => { const opts = [...mat.thicknessOptions]; if (acp.thickness && !opts.includes(acp.thickness)) opts.unshift(acp.thickness); return opts.map(t => <option key={t} value={t}>{t} mm</option>); })()}
-            </select>
-          </Field>
+          <Field label="Thickness"><NumInput value={acp.thickness} unit="mm" onChange={v => patchAcp("thickness", v)} /></Field>
         </div>
         <div className="grid grid-4" style={{ marginBottom: 18 }}>
           <Field label="Base Rate"><NumInput value={acp.baseRate} unit="₹/sqft" onChange={v => patchAcp("baseRate", v)} /></Field>
