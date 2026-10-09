@@ -85,8 +85,8 @@ function QuoteForm({ quote, onChange, onSave, onPreview, onBack }) {
             </div>
           </div>
 
-          <AcpSection quote={quote} patchAcp={patchAcp} patch={patch} calc={c.acp} customCalc={c.customPanel} />
-          <ProfilesSection quote={quote} patch={patch} calc={c.profiles} />
+          <AcpSection quote={quote} patchAcp={patchAcp} patch={patch} calc={c.acp} customCalc={c.customPanel} caseType={quote.caseType} />
+          <ProfilesSection quote={quote} patch={patch} calc={c.profiles} caseType={quote.caseType} />
           <AccessoriesSection quote={quote} patch={patch} calc={c.acc} caseType={quote.caseType} />
           <FoamSection quote={quote} patch={patch} calc={c.foam} customCalc={c.customFoam} />
           <CustomerDisplaySection quote={quote} patch={patch} />
@@ -212,7 +212,7 @@ function PanelBreakdownTable({ rows, cut, editableQty, onQty, rawQty }) {
 }
 
 /* ---------- 3. Panel Material ---------- */
-function AcpSection({ quote, patchAcp, patch, calc, customCalc }) {
+function AcpSection({ quote, patchAcp, patch, calc, customCalc, caseType }) {
   const acp = quote.acp;
   const mat = panelMaterial(acp.material);
   const setPanelQty = (key, v) => {
@@ -253,7 +253,7 @@ function AcpSection({ quote, patchAcp, patch, calc, customCalc }) {
         <div className="grid grid-4" style={{ marginBottom: 16 }}>
           <Field label="Material">
             <select value={acp.material} onChange={e => setMaterial(e.target.value)}>
-              {SETTINGS.panelMaterials.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+              {(caseType ? SETTINGS.panelMaterials.filter(m => { const pr = CASE_TYPE_PRESETS.find(p => p.key === caseType); return pr && m.name === pr.material; }) : SETTINGS.panelMaterials).map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
             </select>
           </Field>
           <Field label="Sheet Width"><NumInput value={acp.sheetW} unit="mm" onChange={v => patchAcp("sheetW", v)} /></Field>
@@ -760,11 +760,13 @@ function LabourSection({ quote, patchLabour, total }) {
 }
 
 /* ---------- 5. Profiles (MF Set + Edge + Profile Extras) ---------- */
-function ProfilesSection({ quote, patch, calc }) {
+function ProfilesSection({ quote, patch, calc, caseType }) {
   const profiles = quote.profiles || {};
   const mf = profiles.mf || PROFILE_DEFAULTS.mf;
   const edge = profiles.edge || PROFILE_DEFAULTS.edge;
   const profileExtras = Array.isArray(quote.profileExtras) ? quote.profileExtras : [];
+  const filteredMfSets = caseType ? SETTINGS.mfSets.filter(s => s.name.toLowerCase().includes(caseType)) : SETTINGS.mfSets;
+  const filteredEdgeOptions = caseType ? SETTINGS.edgeOptions.filter(o => o.name.toLowerCase().includes(caseType)) : SETTINGS.edgeOptions;
 
   const setMf = (k, v) => patch({ profiles: { ...profiles, mf: { ...mf, [k]: v } } });
   const setEdge = (k, v) => patch({ profiles: { ...profiles, edge: { ...edge, [k]: v } } });
@@ -814,7 +816,7 @@ function ProfilesSection({ quote, patch, calc }) {
           <div className="profile-grid" style={{ gridTemplateColumns: "1.6fr repeat(3, 1fr)" }}>
             <Field label="Profile Set">
               <select value={mf.set} onChange={e => onMfSet(e.target.value)}>
-                {SETTINGS.mfSets.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                {filteredMfSets.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
               </select>
             </Field>
             <Field label="Male rate"><NumInput value={mf.male} unit="₹/ft" onChange={v => setMf("male", v)} /></Field>
@@ -840,7 +842,7 @@ function ProfilesSection({ quote, patch, calc }) {
           <div className="profile-grid" style={{ gridTemplateColumns: "1.8fr repeat(3, 1fr)" }}>
             <Field label="Edge Profile">
               <select value={edge.option} onChange={e => onEdgeOpt(e.target.value)}>
-                {SETTINGS.edgeOptions.map(o => <option key={o.name} value={o.name}>{o.name}</option>)}
+                {filteredEdgeOptions.map(o => <option key={o.name} value={o.name}>{o.name}</option>)}
               </select>
             </Field>
             {isManualEdge ? (
