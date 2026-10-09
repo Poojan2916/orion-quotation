@@ -253,14 +253,14 @@ function AcpSection({ quote, patchAcp, patch, calc, customCalc, caseType }) {
         <div className="grid grid-4" style={{ marginBottom: 16 }}>
           <Field label="Material">
             <select value={acp.material} onChange={e => setMaterial(e.target.value)}>
-              {(caseType ? SETTINGS.panelMaterials.filter(m => { const pr = CASE_TYPE_PRESETS.find(p => p.key === caseType); return pr && m.name === pr.material; }) : SETTINGS.panelMaterials).map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+              {(() => { const pr = caseType ? CASE_TYPE_PRESETS.find(p => p.key === caseType) : null; const filtered = pr ? SETTINGS.panelMaterials.filter(m => m.name === pr.material) : SETTINGS.panelMaterials; return (filtered.length ? filtered : SETTINGS.panelMaterials).map(m => <option key={m.name} value={m.name}>{m.name}</option>); })()}
             </select>
           </Field>
           <Field label="Sheet Width"><NumInput value={acp.sheetW} unit="mm" onChange={v => patchAcp("sheetW", v)} /></Field>
           <Field label="Sheet Length"><NumInput value={acp.sheetL} unit="mm" onChange={v => patchAcp("sheetL", v)} /></Field>
           <Field label="Thickness">
             <select value={acp.thickness} onChange={e => patchAcp("thickness", parseFloat(e.target.value))}>
-              {mat.thicknessOptions.map(t => <option key={t} value={t}>{t} mm</option>)}
+              {(() => { const opts = [...mat.thicknessOptions]; if (acp.thickness && !opts.includes(acp.thickness)) opts.unshift(acp.thickness); return opts.map(t => <option key={t} value={t}>{t} mm</option>); })()}
             </select>
           </Field>
         </div>
