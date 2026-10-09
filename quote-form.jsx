@@ -215,6 +215,16 @@ function PanelBreakdownTable({ rows, cut, editableQty, onQty, rawQty }) {
 function AcpSection({ quote, patchAcp, patch, calc, customCalc, caseType }) {
   const acp = quote.acp;
   const mat = panelMaterial(acp.material);
+  const filteredMaterials = (() => {
+    if (!caseType) return SETTINGS.panelMaterials;
+    const pr = CASE_TYPE_PRESETS.find(p => p.key === caseType);
+    if (!pr) return SETTINGS.panelMaterials;
+    const base = pr.material.toLowerCase();
+    const mm = caseType.toLowerCase();
+    let list = SETTINGS.panelMaterials.filter(m => { const n = m.name.toLowerCase(); return n.includes(base) && n.includes(mm); });
+    if (!list.length) list = SETTINGS.panelMaterials.filter(m => m.name.toLowerCase().includes(base));
+    return list.length ? list : SETTINGS.panelMaterials;
+  })();
   const setPanelQty = (key, v) => {
     patchAcp("panels", acp.panels.map(p => p.key === key ? { ...p, qty: v } : p));
   };
@@ -253,7 +263,7 @@ function AcpSection({ quote, patchAcp, patch, calc, customCalc, caseType }) {
         <div className="grid grid-4" style={{ marginBottom: 16 }}>
           <Field label="Material">
             <select value={acp.material} onChange={e => setMaterial(e.target.value)}>
-              {(() => { const pr = caseType ? CASE_TYPE_PRESETS.find(p => p.key === caseType) : null; const filtered = pr ? SETTINGS.panelMaterials.filter(m => m.name === pr.material) : SETTINGS.panelMaterials; return (filtered.length ? filtered : SETTINGS.panelMaterials).map(m => <option key={m.name} value={m.name}>{m.name}</option>); })()}
+              {filteredMaterials.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
             </select>
           </Field>
           <Field label="Sheet Width"><NumInput value={acp.sheetW} unit="mm" onChange={v => patchAcp("sheetW", v)} /></Field>
