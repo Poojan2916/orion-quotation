@@ -184,6 +184,12 @@ const PROFILE_DEFAULTS = {
   da: { enabled: false, option: "Double Angle Profile Silver 4mm", rate: 23, lengthFt: 0, margin: "" },
 };
 
+const CASE_TYPE_PRESETS = [
+  { key: "2mm",  label: "2mm Flight Case",    material: "ACP", thickness: 2,  mfSet: "Silver MF Profile Set 2mm", edgeOption: "R Profile Silver 2mm",              cornerFilter: "2" },
+  { key: "4mm",  label: "4mm Flight Case",    material: "ACP", thickness: 4,  mfSet: "Silver MF Profile Set 4mm", edgeOption: "Double Angle Profile Silver 4mm",   cornerFilter: "4" },
+  { key: "9mm",  label: "9mm Wooden Case",    material: "Plywood", thickness: 12, mfSet: "MF Profile Set 9mm",    edgeOption: "Double Angle Profile 9mm",          cornerFilter: "9" },
+];
+
 // Add-ons removed for now. Kept as an empty preset list so old code/data stays safe.
 const ADDON_PRESETS = [];
 

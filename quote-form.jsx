@@ -13,6 +13,30 @@ function QuoteForm({ quote, onChange, onSave, onPreview, onBack }) {
 
   const c = useMemo(() => calcQuote(quote), [quote]);
 
+  const applyCaseType = (key) => {
+    const preset = CASE_TYPE_PRESETS.find(p => p.key === key);
+    if (!preset) return;
+    const mat = panelMaterial(preset.material);
+    const mf = mfSet(preset.mfSet);
+    const eo = edgeOption(preset.edgeOption);
+    patch({
+      caseType: key,
+      acp: {
+        ...quote.acp,
+        material: preset.material,
+        sheetW: mat.sheetW, sheetL: mat.sheetL,
+        thickness: preset.thickness,
+        baseRate: mat.baseRate, margin: mat.margin || "", overlay: mat.overlay || "",
+        cutMargin: mat.cutMargin || 20,
+      },
+      profiles: {
+        ...quote.profiles,
+        mf: { ...(quote.profiles.mf || PROFILE_DEFAULTS.mf), set: preset.mfSet, male: mf.male, female: mf.female },
+        edge: { ...(quote.profiles.edge || PROFILE_DEFAULTS.edge), option: preset.edgeOption, rate: eo.rate, mode: eo.mode || "auto" },
+      },
+    });
+  };
+
   return (
     <div className="container">
       <div className="preview-bar">
@@ -41,9 +65,29 @@ function QuoteForm({ quote, onChange, onSave, onPreview, onBack }) {
         <div className="builder-main">
           <CustomerSection quote={quote} patchCustomer={patchCustomer} patchProduct={patchProduct} patch={patch} />
           <DimensionsSection quote={quote} patchDim={patchDim} />
+
+          {/* Case Type selector */}
+          <div className="card section-card" style={{ background: "var(--blue-tint, #e8f0ff)" }}>
+            <div className="section-body" style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", padding: "12px 18px" }}>
+              <span style={{ fontWeight: 600, color: "var(--navy)", fontSize: 14 }}>Case Type</span>
+              <div className="toggle-bar" style={{ display: "inline-flex", borderRadius: 6, overflow: "hidden", border: "1px solid var(--navy)" }}>
+                {CASE_TYPE_PRESETS.map(p => (
+                  <button key={p.key}
+                    className={quote.caseType === p.key ? "active" : ""}
+                    style={{ padding: "6px 16px", fontSize: 13, fontWeight: quote.caseType === p.key ? 700 : 400,
+                      background: quote.caseType === p.key ? "var(--navy)" : "transparent",
+                      color: quote.caseType === p.key ? "#fff" : "var(--navy)",
+                      border: "none", cursor: "pointer", transition: "all .15s" }}
+                    onClick={() => applyCaseType(p.key)}>{p.label}</button>
+                ))}
+              </div>
+              {quote.caseType && <span className="tag-chip" style={{ fontSize: 12 }}>{(CASE_TYPE_PRESETS.find(p => p.key === quote.caseType) || {}).label}</span>}
+            </div>
+          </div>
+
           <AcpSection quote={quote} patchAcp={patchAcp} patch={patch} calc={c.acp} customCalc={c.customPanel} />
           <ProfilesSection quote={quote} patch={patch} calc={c.profiles} />
-          <AccessoriesSection quote={quote} patch={patch} calc={c.acc} />
+          <AccessoriesSection quote={quote} patch={patch} calc={c.acc} caseType={quote.caseType} />
           <FoamSection quote={quote} patch={patch} calc={c.foam} customCalc={c.customFoam} />
           <CustomerDisplaySection quote={quote} patch={patch} />
           <LabourSection quote={quote} patchLabour={patchLabour} total={c.labourCost} />
@@ -510,8 +554,12 @@ function FoamSection({ quote, patch, calc, customCalc }) {
 }
 
 /* ---------- 5. Accessories ---------- */
-function AccessoriesSection({ quote, patch, calc }) {
-  const [cornerFilter, setCornerFilter] = useState("all");
+function AccessoriesSection({ quote, patch, calc, caseType }) {
+  const casePreset = caseType ? CASE_TYPE_PRESETS.find(p => p.key === caseType) : null;
+  const [cornerFilter, setCornerFilter] = useState(casePreset ? casePreset.cornerFilter : "all");
+  useEffect(() => {
+    if (casePreset) setCornerFilter(casePreset.cornerFilter);
+  }, [caseType]);
   const setRow = (id, k, v) => patch({ accessories: quote.accessories.map(a => a.id === id ? { ...a, [k]: v } : a) });
   const delRow = (id) => patch({ accessories: quote.accessories.filter(a => a.id !== id) });
   // Add a new row pre-seeded to a specific group's first preset.
