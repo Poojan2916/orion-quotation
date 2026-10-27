@@ -82,7 +82,7 @@ function calcAcp(quote) {
     );
   }
   // minSqft: if actual used sqft < user-set minimum, bill for the minimum instead
-  const actualUsedSqft = main.rows.reduce((s, r) => s + r.cutA * r.cutB * r.qty, 0) / SQMM_PER_SQFT;
+  const actualUsedSqft = Math.ceil(main.rows.reduce((s, r) => s + r.cutA * r.cutB * r.qty, 0) / SQMM_PER_SQFT);
   const bufferSqft = num(quote.acp.bufferSqft);
   const adjustedSqft = actualUsedSqft + bufferSqft;
   const adjustedCost = Math.round(adjustedSqft * main.finalRate);

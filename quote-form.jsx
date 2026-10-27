@@ -88,6 +88,16 @@ function QuoteForm({ quote, onChange, onSave, onPreview, onBack }) {
           <AcpSection quote={quote} patchAcp={patchAcp} patch={patch} calc={c.acp} customCalc={c.customPanel} caseType={quote.caseType} />
           <ProfilesSection quote={quote} patch={patch} calc={c.profiles} caseType={quote.caseType} />
           <AccessoriesSection quote={quote} patch={patch} calc={c.acc} caseType={quote.caseType} />
+
+          {/* Rivet Count */}
+          <div className="card section-card">
+            <div className="section-body" style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 18px", flexWrap: "wrap" }}>
+              <span style={{ fontWeight: 600, color: "var(--navy)", fontSize: 14 }}>Rivets</span>
+              <NumInput value={quote.rivetCount == null ? 200 : quote.rivetCount} onChange={v => patch({ rivetCount: v })} />
+              <span style={{ fontSize: 13, color: "var(--text-2)" }}>pcs (standard: 200)</span>
+            </div>
+          </div>
+
           <FoamSection quote={quote} patch={patch} calc={c.foam} customCalc={c.customFoam} />
           <CustomerDisplaySection quote={quote} patch={patch} />
           <LabourSection quote={quote} patchLabour={patchLabour} total={c.labourCost} />
@@ -292,7 +302,7 @@ function AcpSection({ quote, patchAcp, patch, calc, customCalc, caseType }) {
           <span className="subtotal-pill">Sheet cost <b>₹{inr(calc.sheetCost, 0)}</b></span>
           <span className="subtotal-pill">{calc.sheetSqft} sqft × ₹{calc.finalRate.toFixed(0)}</span>
           <span className="subtotal-pill" style={{ background: "var(--blue-tint,#e8f0ff)", color: "var(--navy)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-            Used <b>{calc.actualUsedSqft.toFixed(2)}</b> +
+            Used <b>{calc.actualUsedSqft}</b> +
             <input className="num-input cell-input" type="number" min="0" step="0.5" style={{ width: 50, textAlign: "center" }}
               value={acp.bufferSqft == null ? "" : acp.bufferSqft}
               onChange={e => patchAcp("bufferSqft", e.target.value === "" ? "" : e.target.value)}

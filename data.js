@@ -255,8 +255,7 @@ function isCustomerHiddenAccessoryName(name) {
     n.includes("corner set") ||
     n.includes("regular corner") ||
     n.includes("ball corner") ||
-    n.includes("dl profile corner") ||
-    n.includes("rivet")
+    n.includes("dl profile corner")
   );
 }
 function customerVisibleAccessoryRows(rows) {
@@ -597,6 +596,7 @@ function makeBlankQuote(seq) {
       seedAcc("Big Hinges", 2),
     ],
     addons: [],
+    rivetCount: 200,
     labour: { cost: 1500, margin: "" },
     quantity: 1,
     shipping: "none",

@@ -386,7 +386,6 @@ function Preview({ quote, onBack, onEdit, onBom, onWo, onDeliver }) {
               <div className="spec"><div className="l">Width</div><div className="v">{quote.caseDims.width} mm</div></div>
               <div className="spec"><div className="l">Total Height (H + H1)</div><div className="v">{h} + {h1} = {h + h1} mm</div></div>
               <div className="spec"><div className="l">Quantity</div><div className="v">{c.quantity} box{c.quantity === 1 ? "" : "es"}</div></div>
-              {c.weightPerBox > 0 && <div className="spec"><div className="l">Approx. Weight</div><div className="v">{inr(c.totalWeight, 2)} kg</div></div>}
             </div>
 
             {/* Scope of supply (no per-item pricing) */}
@@ -394,6 +393,7 @@ function Preview({ quote, onBack, onEdit, onBom, onWo, onDeliver }) {
             <ul className="scope-list">
               <li>Panel Material: {c.acp.material} {c.acp.thickness ? c.acp.thickness + "mm" : ""}</li>
               {scope.map((s, i) => <li key={i}>{s}</li>)}
+              <li>Rivets &times; {num(quote.rivetCount) || 200}</li>
               {accItems.length > 0 && (
                 <li>
                   <span className="scope-acc-head">Accessories &amp; hardware</span>
